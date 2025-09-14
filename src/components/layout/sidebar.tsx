@@ -12,90 +12,87 @@ import {
   Users,
   Building2
 } from "lucide-react";
-import { useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 const navigation = [
   {
     name: "Dashboard",
-    href: "#",
+    href: "/",
     icon: LayoutDashboard,
-    current: true,
   },
   {
     name: "Budgets",
-    href: "#",
+    href: "/budgets",
     icon: Target,
-    current: false,
   },
   {
     name: "Expenses",
-    href: "#",
+    href: "/expenses",
     icon: Wallet,
-    current: false,
   },
   {
     name: "Reports",
-    href: "#",
+    href: "/reports",
     icon: BarChart3,
-    current: false,
   },
   {
     name: "Transactions",
-    href: "#",
+    href: "/transactions",
     icon: CreditCard,
-    current: false,
   },
   {
     name: "Categories",
-    href: "#",
+    href: "/categories",
     icon: FileText,
-    current: false,
   },
   {
     name: "Users",
-    href: "#",
+    href: "/users",
     icon: Users,
-    current: false,
   },
   {
     name: "Settings",
-    href: "#",
+    href: "/settings",
     icon: Settings,
-    current: false,
   },
 ];
 
 export function Sidebar({ className }: SidebarProps) {
-  const [activeItem, setActiveItem] = useState("Dashboard");
+  const location = useLocation();
 
   return (
     <div className={cn("pb-12 w-64 bg-card border-r border-border", className)}>
       <div className="space-y-4 py-4">
         <div className="px-3 py-2">
           <div className="flex items-center gap-2 px-3 py-2">
-            <Building2 className="h-6 w-6 text-primary" />
+            <Building2 className="h-6 w-6 text-primary animate-pulse-glow" />
             <h2 className="text-lg font-semibold tracking-tight">ERP Finance</h2>
           </div>
         </div>
         <div className="px-3">
           <ScrollArea className="h-[calc(100vh-8rem)]">
             <div className="space-y-1">
-              {navigation.map((item) => (
-                <Button
-                  key={item.name}
-                  variant={activeItem === item.name ? "secondary" : "ghost"}
-                  className={cn(
-                    "w-full justify-start gap-3 font-normal",
-                    activeItem === item.name && "bg-secondary font-medium"
-                  )}
-                  onClick={() => setActiveItem(item.name)}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.name}
-                </Button>
-              ))}
+              {navigation.map((item) => {
+                const isActive = location.pathname === item.href || 
+                  (item.href === "/" && location.pathname === "/");
+                
+                return (
+                  <NavLink key={item.name} to={item.href}>
+                    <Button
+                      variant={isActive ? "secondary" : "ghost"}
+                      className={cn(
+                        "w-full justify-start gap-3 font-normal transition-all hover:scale-105",
+                        isActive && "bg-secondary font-medium shadow-sm"
+                      )}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {item.name}
+                    </Button>
+                  </NavLink>
+                );
+              })}
             </div>
           </ScrollArea>
         </div>

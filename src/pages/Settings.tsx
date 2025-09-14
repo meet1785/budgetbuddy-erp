@@ -1,0 +1,358 @@
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { useAppContext } from "@/context/AppContext";
+import { 
+  Settings as SettingsIcon, 
+  Bell, 
+  Shield, 
+  Database, 
+  Users, 
+  CreditCard,
+  Mail,
+  Globe,
+  Palette,
+  Download,
+  Upload
+} from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+
+const Settings = () => {
+  const { state } = useAppContext();
+
+  const handleSaveSettings = () => {
+    toast({
+      title: "Settings saved",
+      description: "Your settings have been updated successfully.",
+    });
+  };
+
+  const handleExportData = () => {
+    toast({
+      title: "Data exported",
+      description: "Your financial data has been exported successfully.",
+    });
+  };
+
+  const handleImportData = () => {
+    toast({
+      title: "Data imported",
+      description: "Financial data has been imported successfully.",
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight animate-fade-in">Settings</h1>
+        <p className="text-muted-foreground animate-fade-in">
+          Manage your account settings and system preferences.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Profile Settings */}
+        <Card className="animate-fade-in">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Profile Settings
+            </CardTitle>
+            <CardDescription>
+              Update your personal information and preferences
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input 
+                id="name" 
+                defaultValue={state.currentUser?.name || ""} 
+                placeholder="John Doe" 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <Input 
+                id="email" 
+                type="email" 
+                defaultValue={state.currentUser?.email || ""} 
+                placeholder="john@company.com" 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="department">Department</Label>
+              <Input 
+                id="department" 
+                defaultValue={state.currentUser?.department || ""} 
+                placeholder="Finance" 
+              />
+            </div>
+            <Button onClick={handleSaveSettings} className="w-full">
+              Save Profile
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Notification Settings */}
+        <Card className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              Notifications
+            </CardTitle>
+            <CardDescription>
+              Configure how you receive notifications
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="email-notifications">Email Notifications</Label>
+                <p className="text-sm text-muted-foreground">
+                  Receive email alerts for important events
+                </p>
+              </div>
+              <Switch id="email-notifications" defaultChecked />
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="budget-alerts">Budget Alerts</Label>
+                <p className="text-sm text-muted-foreground">
+                  Get notified when budgets exceed thresholds
+                </p>
+              </div>
+              <Switch id="budget-alerts" defaultChecked />
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="expense-approvals">Expense Approvals</Label>
+                <p className="text-sm text-muted-foreground">
+                  Notifications for pending expense approvals
+                </p>
+              </div>
+              <Switch id="expense-approvals" defaultChecked />
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="monthly-reports">Monthly Reports</Label>
+                <p className="text-sm text-muted-foreground">
+                  Automated monthly financial summaries
+                </p>
+              </div>
+              <Switch id="monthly-reports" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Security Settings */}
+        <Card className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Security
+            </CardTitle>
+            <CardDescription>
+              Manage your account security settings
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Two-Factor Authentication</Label>
+                <p className="text-sm text-muted-foreground">
+                  Add an extra layer of security
+                </p>
+              </div>
+              <Badge variant="outline" className="text-green-600">
+                Enabled
+              </Badge>
+            </div>
+            <Separator />
+            <div className="space-y-2">
+              <Label htmlFor="current-password">Current Password</Label>
+              <Input id="current-password" type="password" placeholder="••••••••" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-password">New Password</Label>
+              <Input id="new-password" type="password" placeholder="••••••••" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Confirm Password</Label>
+              <Input id="confirm-password" type="password" placeholder="••••••••" />
+            </div>
+            <Button onClick={handleSaveSettings} className="w-full">
+              Update Password
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* System Settings */}
+        <Card className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <SettingsIcon className="h-5 w-5" />
+              System Preferences
+            </CardTitle>
+            <CardDescription>
+              Configure system-wide settings
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="currency">Default Currency</Label>
+              <Input id="currency" defaultValue="USD" placeholder="USD" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fiscal-year">Fiscal Year Start</Label>
+              <Input id="fiscal-year" type="month" defaultValue="2024-01" />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="auto-approval">Auto-approve Small Expenses</Label>
+                <p className="text-sm text-muted-foreground">
+                  Automatically approve expenses under $100
+                </p>
+              </div>
+              <Switch id="auto-approval" />
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="dark-mode">Dark Mode</Label>
+                <p className="text-sm text-muted-foreground">
+                  Use dark theme across the application
+                </p>
+              </div>
+              <Switch id="dark-mode" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Integration Settings */}
+        <Card className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              Integrations
+            </CardTitle>
+            <CardDescription>
+              Connect with external services
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div className="flex items-center gap-3">
+                <CreditCard className="h-5 w-5 text-blue-600" />
+                <div>
+                  <Label>Bank Account Sync</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Sync transactions automatically
+                  </p>
+                </div>
+              </div>
+              <Badge variant="outline" className="text-green-600">
+                Connected
+              </Badge>
+            </div>
+            
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div className="flex items-center gap-3">
+                <Mail className="h-5 w-5 text-red-600" />
+                <div>
+                  <Label>Email Integration</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Send reports via email
+                  </p>
+                </div>
+              </div>
+              <Button variant="outline" size="sm">
+                Configure
+              </Button>
+            </div>
+            
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div className="flex items-center gap-3">
+                <Palette className="h-5 w-5 text-purple-600" />
+                <div>
+                  <Label>Slack Notifications</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Get alerts in Slack
+                  </p>
+                </div>
+              </div>
+              <Button variant="outline" size="sm">
+                Connect
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Data Management */}
+        <Card className="animate-fade-in" style={{ animationDelay: '0.5s' }}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="h-5 w-5" />
+              Data Management
+            </CardTitle>
+            <CardDescription>
+              Import, export, and manage your data
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Export Data</Label>
+              <p className="text-sm text-muted-foreground">
+                Download your financial data in various formats
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={handleExportData}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleExportData}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export PDF
+                </Button>
+              </div>
+            </div>
+            
+            <Separator />
+            
+            <div className="space-y-2">
+              <Label>Import Data</Label>
+              <p className="text-sm text-muted-foreground">
+                Import financial data from spreadsheets
+              </p>
+              <Button variant="outline" size="sm" onClick={handleImportData}>
+                <Upload className="h-4 w-4 mr-2" />
+                Import CSV
+              </Button>
+            </div>
+            
+            <Separator />
+            
+            <div className="space-y-2">
+              <Label>Data Retention</Label>
+              <p className="text-sm text-muted-foreground">
+                Configure how long data is stored
+              </p>
+              <div className="text-sm">
+                <p>Current retention: <Badge variant="secondary">7 years</Badge></p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default Settings;
