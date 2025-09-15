@@ -3,7 +3,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AppProvider } from "@/context/AppContext";
+import { AppProvider, useAppContext } from "@/context/AppContext";
+import { mockData } from "@/data/mockData";
+import React from "react";
 import Dashboard from "./pages/Dashboard";
 import Budgets from "./pages/Budgets";
 import Expenses from "./pages/Expenses";
@@ -17,9 +19,30 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Component to initialize data if localStorage is empty
+function DataInitializer() {
+  const { state, dispatch } = useAppContext();
+  
+  React.useEffect(() => {
+    // Only initialize if we have no data
+    if (state.categories.length === 0 && state.budgets.length === 0) {
+      // Initialize with mock data
+      dispatch({ type: 'SET_CATEGORIES', payload: mockData.categories });
+      dispatch({ type: 'SET_BUDGETS', payload: mockData.budgets });
+      dispatch({ type: 'SET_EXPENSES', payload: mockData.expenses });
+      dispatch({ type: 'SET_TRANSACTIONS', payload: mockData.transactions });
+      dispatch({ type: 'SET_USERS', payload: mockData.users });
+      dispatch({ type: 'SET_CURRENT_USER', payload: mockData.users[0] });
+    }
+  }, [state.categories.length, state.budgets.length, dispatch]);
+
+  return null;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AppProvider>
+      <DataInitializer />
       <TooltipProvider>
         <Toaster />
         <Sonner />

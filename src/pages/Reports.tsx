@@ -5,6 +5,8 @@ import { useAppContext } from "@/context/AppContext";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { Download, FileText, TrendingUp, Calendar, DollarSign } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { ReportGenerator } from "@/components/advanced/ReportGenerator";
+import { BudgetAlerts } from "@/components/advanced/BudgetAlerts";
 
 const Reports = () => {
   const { state } = useAppContext();
@@ -162,6 +164,12 @@ const Reports = () => {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Advanced Features */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <ReportGenerator />
+        <BudgetAlerts />
       </div>
 
       {/* Report Templates */}

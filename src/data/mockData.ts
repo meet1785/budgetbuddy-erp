@@ -231,20 +231,10 @@ export const mockUsers: User[] = [
   }
 ];
 
-export const mockMetrics: DashboardMetrics = {
-  totalBudget: 125450,
-  totalExpenses: 89320,
-  remainingBudget: 36130,
-  savingsGoal: 15000,
-  monthlyBurnRate: 29773,
-  budgetUtilization: 71.2,
-  expenseGrowth: 8.2,
-  categoryBreakdown: [
-    { category: 'Operations', amount: 45200, percentage: 50.6 },
-    { category: 'Development', amount: 28300, percentage: 31.7 },
-    { category: 'Marketing', amount: 12500, percentage: 14.0 },
-    { category: 'Administration', amount: 8900, percentage: 10.0 },
-    { category: 'Travel', amount: 1800, percentage: 2.0 },
-    { category: 'Equipment', amount: 450, percentage: 0.5 }
-  ]
+export const mockData = {
+  categories: mockCategories,
+  budgets: mockBudgets,
+  expenses: mockExpenses,
+  transactions: mockTransactions,
+  users: mockUsers
 };
