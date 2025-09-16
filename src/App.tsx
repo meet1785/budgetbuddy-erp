@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppProvider, useAppContext } from "@/context/AppContext";
+import { ThemeProvider } from "@/components/theme-provider";
 import { mockData } from "@/data/mockData";
 import React from "react";
 import Dashboard from "./pages/Dashboard";
@@ -58,28 +59,30 @@ function DataInitializer() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AppProvider>
-      <DataInitializer />
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="budgets" element={<Budgets />} />
-              <Route path="expenses" element={<Expenses />} />
-              <Route path="reports" element={<Reports />} />
-              <Route path="transactions" element={<Transactions />} />
-              <Route path="categories" element={<Categories />} />
-              <Route path="users" element={<Users />} />
-              <Route path="settings" element={<Settings />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AppProvider>
+    <ThemeProvider defaultTheme="light" storageKey="erp-ui-theme">
+      <AppProvider>
+        <DataInitializer />
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Layout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="budgets" element={<Budgets />} />
+                <Route path="expenses" element={<Expenses />} />
+                <Route path="reports" element={<Reports />} />
+                <Route path="transactions" element={<Transactions />} />
+                <Route path="categories" element={<Categories />} />
+                <Route path="users" element={<Users />} />
+                <Route path="settings" element={<Settings />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AppProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

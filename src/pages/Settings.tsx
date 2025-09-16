@@ -5,24 +5,29 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { useAppContext } from "@/context/AppContext";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { 
-  Settings as SettingsIcon, 
   Bell, 
   Shield, 
-  Database, 
-  Users, 
-  CreditCard,
-  Mail,
-  Globe,
-  Palette,
+  User, 
+  Users,
+  Palette, 
+  Database,
   Download,
-  Upload
+  Upload,
+  Trash2,
+  Save,
+  Settings as SettingsIcon,
+  Globe,
+  CreditCard,
+  Mail
 } from "lucide-react";
+import { useAppContext } from "@/context/AppContext";
 import { toast } from "@/hooks/use-toast";
 
 const Settings = () => {
-  const { state } = useAppContext();
+  const { state, dispatch } = useAppContext();
 
   const handleSaveSettings = () => {
     toast({
@@ -31,17 +36,49 @@ const Settings = () => {
     });
   };
 
-  const handleExportData = () => {
-    toast({
-      title: "Data exported",
-      description: "Your financial data has been exported successfully.",
-    });
-  };
-
   const handleImportData = () => {
     toast({
       title: "Data imported",
       description: "Financial data has been imported successfully.",
+    });
+  };
+
+  const handleExportData = () => {
+    const dataToExport = {
+      budgets: state.budgets,
+      expenses: state.expenses,
+      transactions: state.transactions,
+      categories: state.categories,
+      exportDate: new Date().toISOString()
+    };
+    
+    const dataStr = JSON.stringify(dataToExport, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `erp-data-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Data Exported",
+      description: "Your ERP data has been exported successfully.",
+    });
+  };
+
+  const handleClearData = () => {
+    dispatch({ type: 'SET_BUDGETS', payload: [] });
+    dispatch({ type: 'SET_EXPENSES', payload: [] });
+    dispatch({ type: 'SET_TRANSACTIONS', payload: [] });
+    
+    toast({
+      title: "Data Cleared",
+      description: "All data has been cleared from the system.",
+      variant: "destructive"
     });
   };
 
@@ -98,56 +135,48 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        {/* Notification Settings */}
+        {/* Appearance Settings */}
         <Card className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              Notifications
+              <Palette className="h-5 w-5" />
+              Appearance
             </CardTitle>
             <CardDescription>
-              Configure how you receive notifications
+              Customize the look and feel of your application.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="email-notifications">Email Notifications</Label>
+              <div className="space-y-0.5">
+                <Label>Theme</Label>
                 <p className="text-sm text-muted-foreground">
-                  Receive email alerts for important events
+                  Choose your preferred theme mode
                 </p>
               </div>
-              <Switch id="email-notifications" defaultChecked />
+              <ThemeToggle />
             </div>
+            
             <Separator />
+            
             <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="budget-alerts">Budget Alerts</Label>
+              <div className="space-y-0.5">
+                <Label>Compact View</Label>
                 <p className="text-sm text-muted-foreground">
-                  Get notified when budgets exceed thresholds
+                  Use a more compact layout for tables and lists
                 </p>
               </div>
-              <Switch id="budget-alerts" defaultChecked />
+              <Switch />
             </div>
-            <Separator />
+            
             <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="expense-approvals">Expense Approvals</Label>
+              <div className="space-y-0.5">
+                <Label>Show Animations</Label>
                 <p className="text-sm text-muted-foreground">
-                  Notifications for pending expense approvals
+                  Enable smooth animations and transitions
                 </p>
               </div>
-              <Switch id="expense-approvals" defaultChecked />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="monthly-reports">Monthly Reports</Label>
-                <p className="text-sm text-muted-foreground">
-                  Automated monthly financial summaries
-                </p>
-              </div>
-              <Switch id="monthly-reports" />
+              <Switch defaultChecked />
             </div>
           </CardContent>
         </Card>
