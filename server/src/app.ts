@@ -8,19 +8,13 @@ import dotenv from 'dotenv';
 import connectDatabase from './config/database';
 import { errorHandler, notFound } from './middleware/errorHandler';
 
-// Route imports
-import authRoutes from './routes/auth';
-import budgetRoutes from './routes/budgets';
-import expenseRoutes from './routes/expenses';
-import dashboardRoutes from './routes/dashboard';
-
 // Load environment variables
 dotenv.config();
 
 const app = express();
 
-// Connect to MongoDB
-connectDatabase();
+// Connect to MongoDB (with fallback)
+connectDatabase().catch(console.error);
 
 // Security middleware
 app.use(helmet({
@@ -85,11 +79,26 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/budgets', budgetRoutes);
-app.use('/api/expenses', expenseRoutes);
-app.use('/api/dashboard', dashboardRoutes);
+// Mock data endpoint for development
+app.get('/api/mock-data', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Mock data endpoint',
+    data: {
+      budgets: [],
+      expenses: [],
+      transactions: [],
+      users: [],
+      categories: []
+    }
+  });
+});
+
+// TODO: Add routes when MongoDB is working
+// app.use('/api/auth', authRoutes);
+// app.use('/api/budgets', budgetRoutes);
+// app.use('/api/expenses', expenseRoutes);
+// app.use('/api/dashboard', dashboardRoutes);
 
 // 404 handler
 app.use(notFound);
@@ -101,6 +110,7 @@ const PORT = process.env.PORT || 3001;
 
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+  console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
 });
 
 // Graceful shutdown

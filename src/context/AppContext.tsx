@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import { Budget, Expense, Transaction, User, Category, DashboardMetrics } from '@/types';
+import apiService from '@/services/api';
 
 interface AppState {
   budgets: Budget[];
@@ -11,6 +12,8 @@ interface AppState {
   metrics: DashboardMetrics;
   loading: boolean;
   selectedPeriod: 'monthly' | 'quarterly' | 'yearly';
+  isOnline: boolean;
+  error: string | null;
 }
 
 type AppAction =
@@ -30,7 +33,20 @@ type AppAction =
   | { type: 'SET_CURRENT_USER'; payload: User }
   | { type: 'SET_METRICS'; payload: DashboardMetrics }
   | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_PERIOD'; payload: 'monthly' | 'quarterly' | 'yearly' };
+  | { type: 'SET_PERIOD'; payload: 'monthly' | 'quarterly' | 'yearly' }
+  | { type: 'SET_ONLINE'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string | null };
+
+// Check if backend API is available
+const checkApiHealth = async (): Promise<boolean> => {
+  try {
+    const response = await apiService.healthCheck();
+    return response.success;
+  } catch (error) {
+    console.log('Backend API not available, using localStorage fallback');
+    return false;
+  }
+};
 
 // Load initial state from localStorage or use defaults
 const loadInitialState = (): AppState => {
@@ -58,7 +74,11 @@ const loadInitialState = (): AppState => {
           updatedAt: new Date(budget.updatedAt)
         }));
       }
-      return parsed;
+      return {
+        ...parsed,
+        isOnline: false, // Will be determined later
+        error: null
+      };
     }
   } catch (error) {
     console.error('Error loading state from localStorage:', error);
@@ -82,7 +102,9 @@ const loadInitialState = (): AppState => {
       categoryBreakdown: []
     },
     loading: false,
-    selectedPeriod: 'monthly'
+    selectedPeriod: 'monthly',
+    isOnline: false,
+    error: null
   };
 };
 
@@ -140,6 +162,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, loading: action.payload };
     case 'SET_PERIOD':
       return { ...state, selectedPeriod: action.payload };
+    case 'SET_ONLINE':
+      return { ...state, isOnline: action.payload };
+    case 'SET_ERROR':
+      return { ...state, error: action.payload };
     default:
       return state;
   }
@@ -148,6 +174,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
 const AppContext = createContext<{
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
+  refreshData: () => Promise<void>;
 } | null>(null);
 
 export const useAppContext = () => {
@@ -161,7 +188,10 @@ export const useAppContext = () => {
 // Save state to localStorage
 const saveStateToLocalStorage = (state: AppState) => {
   try {
-    localStorage.setItem('erp-app-state', JSON.stringify(state));
+    const stateToSave = { ...state };
+    delete (stateToSave as any).isOnline;
+    delete (stateToSave as any).error;
+    localStorage.setItem('erp-app-state', JSON.stringify(stateToSave));
   } catch (error) {
     console.error('Error saving state to localStorage:', error);
   }
@@ -216,7 +246,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   // Auto-save to localStorage whenever state changes
   useEffect(() => {
     saveStateToLocalStorage(state);
-  }, [state]);
+  }, [state.budgets, state.expenses, state.transactions, state.users, state.categories]);
 
   // Auto-calculate metrics whenever relevant state changes
   useEffect(() => {
@@ -224,8 +254,50 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     dispatch({ type: 'SET_METRICS', payload: newMetrics });
   }, [state.budgets, state.expenses, state.categories]);
 
+  // Check API health on mount and periodically
+  useEffect(() => {
+    const checkApi = async () => {
+      const isOnline = await checkApiHealth();
+      dispatch({ type: 'SET_ONLINE', payload: isOnline });
+      
+      if (isOnline) {
+        console.log('✅ Backend API is available');
+        // TODO: Sync data with backend when online
+      } else {
+        console.log('📱 Running in offline mode with localStorage');
+      }
+    };
+
+    checkApi();
+    
+    // Check every 30 seconds
+    const interval = setInterval(checkApi, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const refreshData = async () => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    dispatch({ type: 'SET_ERROR', payload: null });
+
+    try {
+      if (state.isOnline) {
+        // TODO: Fetch data from API when backend is fully working
+        console.log('Would refresh data from API');
+      } else {
+        // For now, just recalculate metrics
+        const newMetrics = calculateMetrics(state);
+        dispatch({ type: 'SET_METRICS', payload: newMetrics });
+      }
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to refresh data' });
+      console.error('Error refreshing data:', error);
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  };
+
   return (
-    <AppContext.Provider value={{ state, dispatch }}>
+    <AppContext.Provider value={{ state, dispatch, refreshData }}>
       {children}
     </AppContext.Provider>
   );

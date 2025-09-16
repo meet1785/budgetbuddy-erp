@@ -56,6 +56,8 @@ export interface IUser extends Document {
   createdAt: Date;
   lastLogin?: Date;
   isActive: boolean;
+  comparePassword(candidatePassword: string): Promise<boolean>;
+  updateLastLogin(): Promise<IUser>;
 }
 
 export interface ICategory extends Document {

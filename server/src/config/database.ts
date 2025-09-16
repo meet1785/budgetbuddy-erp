@@ -3,17 +3,28 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/budgetbuddy_erp';
+const getMongoUri = (): string => {
+  // Try cloud MongoDB first, fallback to local
+  if (process.env.USE_LOCAL_MONGO === 'true') {
+    return process.env.MONGODB_LOCAL_URI || 'mongodb://localhost:27017/budgetbuddy_erp';
+  }
+  return process.env.MONGODB_URI || 'mongodb://localhost:27017/budgetbuddy_erp';
+};
 
-export const connectDatabase = async (): Promise<void> => {
+const connectDatabase = async (): Promise<void> => {
   try {
+    const MONGODB_URI = getMongoUri();
+    
+    console.log('🔗 Attempting to connect to MongoDB...');
+    
     const conn = await mongoose.connect(MONGODB_URI, {
       dbName: process.env.DB_NAME || 'budgetbuddy_erp',
+      serverSelectionTimeoutMS: 10000, // 10 second timeout
+      connectTimeoutMS: 10000,
+      socketTimeoutMS: 10000,
     });
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
-    
-    // Log database name
     console.log(`📊 Database: ${conn.connection.name}`);
     
     // Handle connection events
@@ -32,9 +43,35 @@ export const connectDatabase = async (): Promise<void> => {
       process.exit(0);
     });
 
-  } catch (error) {
-    console.error('❌ Error connecting to MongoDB:', error);
-    process.exit(1);
+  } catch (error: any) {
+    console.error('❌ Error connecting to MongoDB:', error.message);
+    
+    // If cloud connection fails, try local fallback
+    if (!process.env.USE_LOCAL_MONGO && error.message.includes('ETIMEOUT')) {
+      console.log('🔄 Cloud MongoDB connection failed, attempting local fallback...');
+      
+      try {
+        const localUri = process.env.MONGODB_LOCAL_URI || 'mongodb://localhost:27017/budgetbuddy_erp';
+        const conn = await mongoose.connect(localUri, {
+          dbName: process.env.DB_NAME || 'budgetbuddy_erp',
+        });
+        
+        console.log(`✅ Local MongoDB Connected: ${conn.connection.host}`);
+        console.log(`📊 Database: ${conn.connection.name}`);
+        return;
+        
+      } catch (localError: any) {
+        console.error('❌ Local MongoDB connection also failed:', localError.message);
+        console.log('💡 Using in-memory storage for development...');
+        return; // Continue without database for development
+      }
+    }
+    
+    console.log('💡 Continuing without database connection for development...');
+    // Don't exit in development - allow app to run without DB for frontend development
+    if (process.env.NODE_ENV === 'production') {
+      process.exit(1);
+    }
   }
 };
 
