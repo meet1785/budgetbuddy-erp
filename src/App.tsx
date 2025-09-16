@@ -24,17 +24,34 @@ function DataInitializer() {
   const { state, dispatch } = useAppContext();
   
   React.useEffect(() => {
-    // Only initialize if we have no data
-    if (state.categories.length === 0 && state.budgets.length === 0) {
-      // Initialize with mock data
+    // Initialize any missing datasets from mock data (in-memory persistence)
+    if (state.categories.length === 0) {
       dispatch({ type: 'SET_CATEGORIES', payload: mockData.categories });
+    }
+    if (state.budgets.length === 0) {
       dispatch({ type: 'SET_BUDGETS', payload: mockData.budgets });
+    }
+    if (state.expenses.length === 0) {
       dispatch({ type: 'SET_EXPENSES', payload: mockData.expenses });
+    }
+    if (state.transactions.length === 0) {
       dispatch({ type: 'SET_TRANSACTIONS', payload: mockData.transactions });
+    }
+    if (state.users.length === 0) {
       dispatch({ type: 'SET_USERS', payload: mockData.users });
+    }
+    if (!state.currentUser && mockData.users.length > 0) {
       dispatch({ type: 'SET_CURRENT_USER', payload: mockData.users[0] });
     }
-  }, [state.categories.length, state.budgets.length, dispatch]);
+  }, [
+    state.categories.length,
+    state.budgets.length,
+    state.expenses.length,
+    state.transactions.length,
+    state.users.length,
+    state.currentUser,
+    dispatch
+  ]);
 
   return null;
 }
