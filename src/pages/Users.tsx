@@ -1,11 +1,11 @@
 import { ColumnDef } from "@tanstack/react-table";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DataTable } from "@/components/data-table/DataTable";
 import { useAppContext } from "@/context/AppContext";
 import { User } from "@/types";
-import { format } from "date-fns";
-import { MoreHorizontal, Edit, Trash2, Shield, UserCheck } from "lucide-react";
+import { Plus, MoreHorizontal, Edit, Trash2, Shield, Eye } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +13,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { format } from "date-fns";
 
 const Users = () => {
   const { state } = useAppContext();
@@ -21,23 +22,27 @@ const Users = () => {
   const getRoleBadge = (role: User['role']) => {
     switch (role) {
       case 'admin':
-        return <Badge variant="default" className="bg-red-100 text-red-800">Admin</Badge>;
+        return <Badge variant="default" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Admin</Badge>;
       case 'manager':
-        return <Badge variant="default" className="bg-blue-100 text-blue-800">Manager</Badge>;
+        return <Badge variant="default" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Manager</Badge>;
       case 'user':
         return <Badge variant="secondary">User</Badge>;
       default:
-        return <Badge variant="secondary">Unknown</Badge>;
+        return <Badge variant="outline">Unknown</Badge>;
     }
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase();
-  };
+  // Calculate summary statistics
+  const totalUsers = state.users.length;
+  const adminCount = state.users.filter(user => user.role === 'admin').length;
+  const managerCount = state.users.filter(user => user.role === 'manager').length;
+  
+  // Active users (logged in within last 7 days)
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const activeUsers = state.users.filter(user => 
+    user.lastLogin && new Date(user.lastLogin) >= sevenDaysAgo
+  ).length;
 
   const columns: ColumnDef<User>[] = [
     {
@@ -46,10 +51,12 @@ const Users = () => {
       cell: ({ row }) => {
         const user = row.original;
         return (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center space-x-3">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={user.avatar} alt={user.name} />
-              <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+              <AvatarImage src={user.avatar} />
+              <AvatarFallback className="text-xs">
+                {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+              </AvatarFallback>
             </Avatar>
             <div>
               <div className="font-medium">{user.name}</div>
@@ -77,11 +84,17 @@ const Users = () => {
       cell: ({ row }) => {
         const permissions = row.getValue("permissions") as string[];
         return (
-          <div className="flex items-center gap-1">
-            <Shield className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">
-              {permissions.length} permissions
-            </span>
+          <div className="flex gap-1 flex-wrap">
+            {permissions.slice(0, 2).map((permission, index) => (
+              <Badge key={index} variant="secondary" className="text-xs">
+                {permission}
+              </Badge>
+            ))}
+            {permissions.length > 2 && (
+              <Badge variant="secondary" className="text-xs">
+                +{permissions.length - 2}
+              </Badge>
+            )}
           </div>
         );
       },
@@ -98,12 +111,9 @@ const Users = () => {
       accessorKey: "lastLogin",
       header: "Last Login",
       cell: ({ row }) => {
-        const date = row.getValue("lastLogin") as Date | undefined;
-        return date ? (
-          <div className="text-sm">{format(date, "MMM dd, yyyy")}</div>
-        ) : (
-          <span className="text-sm text-muted-foreground">Never</span>
-        );
+        const date = row.getValue("lastLogin") as Date | null;
+        if (!date) return <div className="text-sm text-muted-foreground">Never</div>;
+        return <div className="text-sm">{format(date, "MMM dd, yyyy")}</div>;
       },
     },
     {
@@ -123,7 +133,7 @@ const Users = () => {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuItem>
-                <UserCheck className="mr-2 h-4 w-4" />
+                <Eye className="mr-2 h-4 w-4" />
                 View Profile
               </DropdownMenuItem>
               <DropdownMenuItem>
@@ -134,7 +144,7 @@ const Users = () => {
                 <Shield className="mr-2 h-4 w-4" />
                 Manage Permissions
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-red-600">
+              <DropdownMenuItem className="text-red-600 dark:text-red-400">
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete User
               </DropdownMenuItem>
@@ -144,14 +154,6 @@ const Users = () => {
       },
     },
   ];
-
-  // Calculate summary stats
-  const totalUsers = state.users.length;
-  const adminCount = state.users.filter(u => u.role === 'admin').length;
-  const managerCount = state.users.filter(u => u.role === 'manager').length;
-  const userCount = state.users.filter(u => u.role === 'user').length;
-  const activeUsers = state.users.filter(u => u.lastLogin && 
-    new Date().getTime() - u.lastLogin.getTime() < 7 * 24 * 60 * 60 * 1000).length; // Active in last 7 days
 
   return (
     <div className="space-y-6">
@@ -164,44 +166,60 @@ const Users = () => {
         </div>
         
         <Button className="gap-2 animate-bounce-gentle">
-          <UserCheck className="h-4 w-4" />
+          <Plus className="h-4 w-4" />
           Add User
         </Button>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="rounded-lg border p-4 bg-gradient-card shadow-card animate-fade-in">
-          <div className="flex items-center gap-2 mb-2">
-            <UserCheck className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-muted-foreground">Total Users</span>
-          </div>
-          <div className="text-2xl font-bold">{totalUsers}</div>
-        </div>
+        <Card className="animate-fade-in">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalUsers}</div>
+            <p className="text-xs text-muted-foreground">
+              Active user accounts
+            </p>
+          </CardContent>
+        </Card>
 
-        <div className="rounded-lg border p-4 bg-gradient-card shadow-card animate-fade-in" style={{ animationDelay: '0.1s' }}>
-          <div className="flex items-center gap-2 mb-2">
-            <Shield className="h-4 w-4 text-red-600" />
-            <span className="text-sm font-medium text-muted-foreground">Administrators</span>
-          </div>
-          <div className="text-2xl font-bold">{adminCount}</div>
-        </div>
+        <Card className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Administrators</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{adminCount}</div>
+            <p className="text-xs text-muted-foreground">
+              System administrators
+            </p>
+          </CardContent>
+        </Card>
 
-        <div className="rounded-lg border p-4 bg-gradient-card shadow-card animate-fade-in" style={{ animationDelay: '0.2s' }}>
-          <div className="flex items-center gap-2 mb-2">
-            <UserCheck className="h-4 w-4 text-blue-600" />
-            <span className="text-sm font-medium text-muted-foreground">Managers</span>
-          </div>
-          <div className="text-2xl font-bold">{managerCount}</div>
-        </div>
+        <Card className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Managers</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{managerCount}</div>
+            <p className="text-xs text-muted-foreground">
+              Department managers
+            </p>
+          </CardContent>
+        </Card>
 
-        <div className="rounded-lg border p-4 bg-gradient-card shadow-card animate-fade-in" style={{ animationDelay: '0.3s' }}>
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-4 h-4 rounded-full bg-green-500" />
-            <span className="text-sm font-medium text-muted-foreground">Active Users</span>
-          </div>
-          <div className="text-2xl font-bold">{activeUsers}</div>
-        </div>
+        <Card className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{activeUsers}</div>
+            <p className="text-xs text-muted-foreground">
+              Logged in (7 days)
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       <DataTable

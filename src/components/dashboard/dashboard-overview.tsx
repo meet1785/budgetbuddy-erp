@@ -1,4 +1,3 @@
-import { StatCard } from "@/components/ui/stat-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { 
@@ -10,43 +9,66 @@ import {
   AlertCircle,
   PieChart
 } from "lucide-react";
+import { useAppContext } from "@/context/AppContext";
 
 const DashboardOverview = () => {
+  const { state } = useAppContext();
+
   return (
     <div className="space-y-6">
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Total Budget"
-          value="$125,450"
-          change="+12.5%"
-          changeType="positive"
-          variant="primary"
-          icon={<DollarSign className="h-5 w-5 text-primary-foreground" />}
-        />
-        <StatCard
-          title="Total Expenses"
-          value="$89,320"
-          change="+8.2%"
-          changeType="positive"
-          icon={<Wallet className="h-5 w-5 text-muted-foreground" />}
-        />
-        <StatCard
-          title="Remaining Budget"
-          value="$36,130"
-          change="-4.3%"
-          changeType="negative"
-          variant="success"
-          icon={<Target className="h-5 w-5 text-success-foreground" />}
-        />
-        <StatCard
-          title="Savings Goal"
-          value="$15,000"
-          change="78%"
-          changeType="positive"
-          variant="accent"
-          icon={<TrendingUp className="h-5 w-5 text-accent-foreground" />}
-        />
+        <Card className="animate-fade-in">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Budget</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${state.metrics.totalBudget.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              +12.5% from last month
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+            <Wallet className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${state.metrics.totalExpenses.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              +8.2% from last month
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Remaining Budget</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${state.metrics.remainingBudget.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              {state.metrics.budgetUtilization.toFixed(1)}% utilized
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Monthly Burn Rate</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${state.metrics.monthlyBurnRate.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              Last 30 days spending
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Budget Progress */}

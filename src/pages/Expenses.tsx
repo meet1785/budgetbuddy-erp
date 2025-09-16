@@ -58,9 +58,9 @@ const Expenses = () => {
   const getStatusBadge = (status: Expense['status']) => {
     switch (status) {
       case 'approved':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Approved</Badge>;
+        return <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Approved</Badge>;
       case 'pending':
-        return <Badge variant="default" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+        return <Badge variant="default" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Pending</Badge>;
       case 'rejected':
         return <Badge variant="destructive">Rejected</Badge>;
       default:
@@ -148,14 +148,14 @@ const Expenses = () => {
                 <>
                   <DropdownMenuItem 
                     onClick={() => handleApprove(expense)}
-                    className="text-green-600"
+                    className="text-green-600 dark:text-green-400"
                   >
                     <Check className="mr-2 h-4 w-4" />
                     Approve
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => handleReject(expense)}
-                    className="text-red-600"
+                    className="text-red-600 dark:text-red-400"
                   >
                     <X className="mr-2 h-4 w-4" />
                     Reject
@@ -164,7 +164,7 @@ const Expenses = () => {
               )}
               <DropdownMenuItem 
                 onClick={() => handleDelete(expense.id)}
-                className="text-red-600"
+                className="text-red-600 dark:text-red-400"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete Expense
