@@ -64,7 +64,7 @@ const DashboardOverview = () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${state.metrics.monthlyBurnRate.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{formatCurrency(state.metrics.monthlyBurnRate)}</div>
             <p className="text-xs text-muted-foreground">
               Last 30 days spending
             </p>
