@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, useEffect, useCallback, useRef } from 'react';
 import { Budget, Expense, Transaction, User, Category, DashboardMetrics } from '@/types';
 import apiService from '@/services/api';
 
@@ -14,6 +14,7 @@ interface AppState {
   selectedPeriod: 'monthly' | 'quarterly' | 'yearly';
   isOnline: boolean;
   error: string | null;
+  initialized: boolean;
 }
 
 type AppAction =
@@ -30,23 +31,14 @@ type AppAction =
   | { type: 'SET_USERS'; payload: User[] }
   | { type: 'SET_CATEGORIES'; payload: Category[] }
   | { type: 'ADD_CATEGORY'; payload: Category }
-  | { type: 'SET_CURRENT_USER'; payload: User }
+  | { type: 'SET_CURRENT_USER'; payload: User | null }
   | { type: 'SET_METRICS'; payload: DashboardMetrics }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_PERIOD'; payload: 'monthly' | 'quarterly' | 'yearly' }
   | { type: 'SET_ONLINE'; payload: boolean }
-  | { type: 'SET_ERROR'; payload: string | null };
-
-const defaultMetrics: DashboardMetrics = {
-  totalBudget: 0,
-  totalExpenses: 0,
-  remainingBudget: 0,
-  savingsGoal: 0,
-  monthlyBurnRate: 0,
-  budgetUtilization: 0,
-  expenseGrowth: 0,
-  categoryBreakdown: []
-};
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'SET_INITIALIZED'; payload: boolean }
+  | { type: 'RESET_STATE' };
 
 const toDate = (value: unknown, fallback: Date = new Date()): Date => {
   const date = value ? new Date(value as string | number | Date) : undefined;
@@ -179,7 +171,9 @@ type ExpensePayload = {
 interface AppContextValue {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
-  refreshData: () => Promise<void>;
+  refreshData: (forceOnline?: boolean) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
   createBudget: (payload: BudgetPayload) => Promise<Budget>;
   updateBudget: (id: string, payload: BudgetPayload) => Promise<Budget>;
   deleteBudget: (id: string) => Promise<void>;
@@ -201,6 +195,32 @@ const checkApiHealth = async (): Promise<boolean> => {
   }
 };
 
+const createEmptyMetrics = (): DashboardMetrics => ({
+  totalBudget: 0,
+  totalExpenses: 0,
+  remainingBudget: 0,
+  savingsGoal: 0,
+  monthlyBurnRate: 0,
+  budgetUtilization: 0,
+  expenseGrowth: 0,
+  categoryBreakdown: []
+});
+
+const createEmptyState = (): AppState => ({
+  budgets: [],
+  expenses: [],
+  transactions: [],
+  users: [],
+  categories: [],
+  currentUser: null,
+  metrics: createEmptyMetrics(),
+  loading: false,
+  selectedPeriod: 'monthly',
+  isOnline: false,
+  error: null,
+  initialized: false
+});
+
 // Load initial state from localStorage or use defaults
 const loadInitialState = (): AppState => {
   try {
@@ -208,13 +228,16 @@ const loadInitialState = (): AppState => {
     if (savedState) {
       const parsed = JSON.parse(savedState);
       return {
-        ...parsed,
+        ...createEmptyState(),
         budgets: normalizeBudgets(parsed.budgets),
         expenses: normalizeExpenses(parsed.expenses),
         transactions: normalizeTransactions(parsed.transactions),
         users: normalizeUsers(parsed.users),
         categories: normalizeCategories(parsed.categories),
+        currentUser: parsed.currentUser ? normalizeUser(parsed.currentUser) : null,
         metrics: normalizeMetrics(parsed.metrics),
+        selectedPeriod: parsed.selectedPeriod ?? 'monthly',
+        initialized: false,
         isOnline: false,
         error: null
       };
@@ -223,19 +246,7 @@ const loadInitialState = (): AppState => {
     console.error('Error loading state from localStorage:', error);
   }
   
-  return {
-    budgets: [],
-    expenses: [],
-    transactions: [],
-    users: [],
-    categories: [],
-    currentUser: null,
-    metrics: defaultMetrics,
-    loading: false,
-    selectedPeriod: 'monthly',
-    isOnline: false,
-    error: null
-  };
+  return createEmptyState();
 };
 
 const initialState: AppState = loadInitialState();
@@ -296,6 +307,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, isOnline: action.payload };
     case 'SET_ERROR':
       return { ...state, error: action.payload };
+    case 'SET_INITIALIZED':
+      return { ...state, initialized: action.payload };
+    case 'RESET_STATE':
+      return createEmptyState();
     default:
       return state;
   }
@@ -317,6 +332,7 @@ const saveStateToLocalStorage = (state: AppState) => {
     const stateToSave = { ...state };
     delete (stateToSave as any).isOnline;
     delete (stateToSave as any).error;
+    delete (stateToSave as any).initialized;
     localStorage.setItem('erp-app-state', JSON.stringify(stateToSave));
   } catch (error) {
     console.error('Error saving state to localStorage:', error);
