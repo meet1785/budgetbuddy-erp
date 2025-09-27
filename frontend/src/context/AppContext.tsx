@@ -50,7 +50,63 @@ const ensureNumber = (value: unknown, fallback = 0): number => {
   return Number.isFinite(num) ? num : fallback;
 };
 
-const normalizeBudget = (data: any): Budget => {
+interface RawBudget {
+  id?: string;
+  _id?: string;
+  name?: string;
+  category?: string;
+  allocated?: number | string;
+  spent?: number | string;
+  remaining?: number | string;
+  period?: 'monthly' | 'quarterly' | 'yearly';
+  status?: 'on-track' | 'warning' | 'over-budget';
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+}
+
+interface RawExpense {
+  id?: string;
+  _id?: string;
+  description?: string;
+  amount?: number | string;
+  category?: string;
+  budgetId?: string;
+  date?: string | Date;
+  vendor?: string;
+  receiptUrl?: string;
+  status?: 'pending' | 'approved' | 'rejected';
+  approvedBy?: string;
+  tags?: string[];
+  department?: string;
+}
+
+interface RawTransaction {
+  id?: string;
+  _id?: string;
+  type?: 'income' | 'expense';
+  amount?: number | string;
+  description?: string;
+  category?: string;
+  date?: string | Date;
+  account?: string;
+  reference?: string;
+  status?: 'completed' | 'pending' | 'failed';
+}
+
+interface RawUser {
+  id?: string;
+  _id?: string;
+  name?: string;
+  email?: string;
+  role?: 'admin' | 'manager' | 'user';
+  department?: string;
+  avatar?: string;
+  permissions?: string[];
+  createdAt?: string | Date;
+  lastLogin?: string | Date;
+}
+
+const normalizeBudget = (data: RawBudget): Budget => {
   const allocated = ensureNumber(data?.allocated);
   const spent = ensureNumber(data?.spent);
   return {
@@ -67,10 +123,10 @@ const normalizeBudget = (data: any): Budget => {
   };
 };
 
-const normalizeBudgets = (items: any[] | undefined): Budget[] =>
+const normalizeBudgets = (items: RawBudget[] | undefined): Budget[] =>
   Array.isArray(items) ? items.map(normalizeBudget) : [];
 
-const normalizeExpense = (data: any): Expense => ({
+const normalizeExpense = (data: RawExpense): Expense => ({
   id: String(data?.id ?? data?._id ?? crypto.randomUUID()),
   description: data?.description ?? '',
   amount: ensureNumber(data?.amount),
@@ -85,10 +141,10 @@ const normalizeExpense = (data: any): Expense => ({
   department: data?.department ?? ''
 });
 
-const normalizeExpenses = (items: any[] | undefined): Expense[] =>
+const normalizeExpenses = (items: RawExpense[] | undefined): Expense[] =>
   Array.isArray(items) ? items.map(normalizeExpense) : [];
 
-const normalizeTransaction = (data: any): Transaction => ({
+const normalizeTransaction = (data: RawTransaction): Transaction => ({
   id: String(data?.id ?? data?._id ?? crypto.randomUUID()),
   type: (data?.type ?? 'expense') as Transaction['type'],
   amount: ensureNumber(data?.amount),
@@ -100,10 +156,10 @@ const normalizeTransaction = (data: any): Transaction => ({
   status: (data?.status ?? 'pending') as Transaction['status']
 });
 
-const normalizeTransactions = (items: any[] | undefined): Transaction[] =>
+const normalizeTransactions = (items: RawTransaction[] | undefined): Transaction[] =>
   Array.isArray(items) ? items.map(normalizeTransaction) : [];
 
-const normalizeUser = (data: any): User => ({
+const normalizeUser = (data: RawUser): User => ({
   id: String(data?.id ?? data?._id ?? crypto.randomUUID()),
   name: data?.name ?? '',
   email: data?.email ?? '',
@@ -115,10 +171,10 @@ const normalizeUser = (data: any): User => ({
   lastLogin: data?.lastLogin ? toDate(data?.lastLogin) : undefined
 });
 
-const normalizeUsers = (items: any[] | undefined): User[] =>
+const normalizeUsers = (items: RawUser[] | undefined): User[] =>
   Array.isArray(items) ? items.map(normalizeUser) : [];
 
-const normalizeCategory = (data: any): Category => ({
+const normalizeCategory = (data: Partial<Category>): Category => ({
   id: String(data?.id ?? data?._id ?? crypto.randomUUID()),
   name: data?.name ?? '',
   description: data?.description ?? undefined,
@@ -128,10 +184,16 @@ const normalizeCategory = (data: any): Category => ({
   isActive: data?.isActive ?? true
 });
 
-const normalizeCategories = (items: any[] | undefined): Category[] =>
+const normalizeCategories = (items: Partial<Category>[] | undefined): Category[] =>
   Array.isArray(items) ? items.map(normalizeCategory) : [];
 
-const normalizeMetrics = (data: any | undefined): DashboardMetrics => ({
+interface CategoryBreakdownItem {
+  category?: string;
+  amount?: number | string;
+  percentage?: number | string;
+}
+
+const normalizeMetrics = (data: Partial<DashboardMetrics> | undefined): DashboardMetrics => ({
   totalBudget: ensureNumber(data?.totalBudget),
   totalExpenses: ensureNumber(data?.totalExpenses),
   remainingBudget: ensureNumber(data?.remainingBudget),
@@ -140,7 +202,7 @@ const normalizeMetrics = (data: any | undefined): DashboardMetrics => ({
   budgetUtilization: ensureNumber(data?.budgetUtilization),
   expenseGrowth: ensureNumber(data?.expenseGrowth),
   categoryBreakdown: Array.isArray(data?.categoryBreakdown)
-    ? data.categoryBreakdown.map((item: any) => ({
+    ? data.categoryBreakdown.map((item: CategoryBreakdownItem) => ({
         category: item?.category ?? 'Unknown',
         amount: ensureNumber(item?.amount),
         percentage: ensureNumber(item?.percentage)
@@ -257,7 +319,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, budgets: action.payload };
     case 'ADD_BUDGET':
       return { ...state, budgets: [...state.budgets, action.payload] };
-    case 'UPDATE_BUDGET':
+    case 'UPDATE_BUDGET': {
       const updatedBudget = action.payload;
       // Recalculate status based on spending
       const utilization = (updatedBudget.spent / updatedBudget.allocated) * 100;
@@ -266,6 +328,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         budgets: state.budgets.map(b => b.id === updatedBudget.id ? updatedBudget : b)
       };
+    }
     case 'DELETE_BUDGET':
       return {
         ...state,
@@ -329,10 +392,11 @@ export const useAppContext = () => {
 // Save state to localStorage
 const saveStateToLocalStorage = (state: AppState) => {
   try {
-    const stateToSave = { ...state };
-    delete (stateToSave as any).isOnline;
-    delete (stateToSave as any).error;
-    delete (stateToSave as any).initialized;
+    // Create a state object without transient properties
+    const stateToSave: Partial<AppState> = { ...state };
+    delete stateToSave.isOnline;
+    delete stateToSave.error;
+    delete stateToSave.initialized;
     localStorage.setItem('erp-app-state', JSON.stringify(stateToSave));
   } catch (error) {
     console.error('Error saving state to localStorage:', error);
@@ -388,13 +452,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   // Auto-save to localStorage whenever state changes
   useEffect(() => {
     saveStateToLocalStorage(state);
-  }, [state.budgets, state.expenses, state.transactions, state.users, state.categories]);
+  }, [state]);
 
   // Auto-calculate metrics whenever relevant state changes
   useEffect(() => {
     const newMetrics = calculateMetrics(state);
     dispatch({ type: 'SET_METRICS', payload: newMetrics });
-  }, [state.budgets, state.expenses, state.categories]);
+  }, [state]);
 
   // Check API health on mount and periodically
   useEffect(() => {
@@ -669,7 +733,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (budgetsResult.status === 'fulfilled') {
           dispatch({
             type: 'SET_BUDGETS',
-            payload: normalizeBudgets(budgetsResult.value.data as any[] | undefined)
+            payload: normalizeBudgets(budgetsResult.value.data)
           });
         } else {
           console.error('Failed to load budgets:', budgetsResult.reason);
@@ -679,7 +743,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (expensesResult.status === 'fulfilled') {
           dispatch({
             type: 'SET_EXPENSES',
-            payload: normalizeExpenses(expensesResult.value.data as any[] | undefined)
+            payload: normalizeExpenses(expensesResult.value.data)
           });
         } else {
           console.error('Failed to load expenses:', expensesResult.reason);
@@ -689,7 +753,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (transactionsResult.status === 'fulfilled') {
           dispatch({
             type: 'SET_TRANSACTIONS',
-            payload: normalizeTransactions(transactionsResult.value.data as any[] | undefined)
+            payload: normalizeTransactions(transactionsResult.value.data)
           });
         } else {
           console.error('Failed to load transactions:', transactionsResult.reason);
@@ -699,7 +763,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (usersResult.status === 'fulfilled') {
           dispatch({
             type: 'SET_USERS',
-            payload: normalizeUsers(usersResult.value.data as any[] | undefined)
+            payload: normalizeUsers(usersResult.value.data)
           });
         } else {
           console.error('Failed to load users:', usersResult.reason);
@@ -709,7 +773,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (categoriesResult.status === 'fulfilled') {
           dispatch({
             type: 'SET_CATEGORIES',
-            payload: normalizeCategories(categoriesResult.value.data as any[] | undefined)
+            payload: normalizeCategories(categoriesResult.value.data)
           });
         } else {
           console.error('Failed to load categories:', categoriesResult.reason);
@@ -719,7 +783,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (metricsResult.status === 'fulfilled') {
           dispatch({
             type: 'SET_METRICS',
-            payload: normalizeMetrics(metricsResult.value.data as any)
+            payload: normalizeMetrics(metricsResult.value.data)
           });
         } else {
           console.error('Failed to load metrics:', metricsResult.reason);

@@ -6,6 +6,15 @@ import { useAppContext } from "@/context/AppContext";
 import { AlertTriangle, TrendingUp, DollarSign, Clock } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
+interface Alert {
+  id: string;
+  type: 'error' | 'warning' | 'info';
+  title: string;
+  message: string;
+  progress?: number;
+  action?: string;
+}
+
 export const BudgetAlerts = () => {
   const { state } = useAppContext();
 
@@ -127,7 +136,7 @@ export const BudgetAlerts = () => {
     }
   };
 
-  const handleAlertAction = (alert: any) => {
+  const handleAlertAction = (alert: Alert) => {
     toast({
       title: "Alert Acknowledged",
       description: `Marked "${alert.title}" for ${alert.action}.`,

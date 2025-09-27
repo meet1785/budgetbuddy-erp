@@ -4,6 +4,11 @@ import { useAppContext } from '@/context/AppContext';
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#06B6D4'];
 
+interface LabelProps {
+  name: string;
+  percent?: number;
+}
+
 export const BudgetPieChart = () => {
   const { state } = useAppContext();
   
@@ -26,12 +31,6 @@ export const BudgetPieChart = () => {
               cx="50%"
               cy="50%"
               labelLine={false}
-interface LabelProps {
-  name: string;
-  percent?: number;
-}
-
-// In the component:
               label={(props: LabelProps) => `${props.name} ${((props.percent || 0) * 100).toFixed(1)}%`}
               outerRadius={80}
               fill="#8884d8"
