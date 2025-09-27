@@ -281,10 +281,37 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       if (state.isOnline) {
-        // TODO: Fetch data from API when backend is fully working
-        console.log('Would refresh data from API');
+        // Fetch all data from API when backend is connected
+        const [budgets, expenses, transactions, users, categories, metrics] = await Promise.all([
+          apiService.getBudgets(),
+          apiService.getExpenses(),
+          apiService.getTransactions ? apiService.getTransactions() : Promise.resolve({ data: [] }),
+          apiService.getUsers ? apiService.getUsers() : Promise.resolve({ data: [] }),
+          apiService.getCategories ? apiService.getCategories() : Promise.resolve({ data: [] }),
+          apiService.getDashboardMetrics()
+        ]);
+
+        // Update state with API data
+        if (budgets.success && budgets.data) {
+          dispatch({ type: 'SET_BUDGETS', payload: budgets.data });
+        }
+        if (expenses.success && expenses.data) {
+          dispatch({ type: 'SET_EXPENSES', payload: expenses.data });
+        }
+        if (transactions.success && transactions.data) {
+          dispatch({ type: 'SET_TRANSACTIONS', payload: transactions.data });
+        }
+        if (users.success && users.data) {
+          dispatch({ type: 'SET_USERS', payload: users.data });
+        }
+        if (categories.success && categories.data) {
+          dispatch({ type: 'SET_CATEGORIES', payload: categories.data });
+        }
+        if (metrics.success && metrics.data) {
+          dispatch({ type: 'SET_METRICS', payload: metrics.data });
+        }
       } else {
-        // For now, just recalculate metrics
+        // Recalculate metrics from local data
         const newMetrics = calculateMetrics(state);
         dispatch({ type: 'SET_METRICS', payload: newMetrics });
       }

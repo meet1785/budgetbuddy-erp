@@ -175,6 +175,24 @@ class ApiService {
     });
   }
 
+  // Transaction endpoints
+  async getTransactions(params?: any) {
+    const query = params ? '?' + new URLSearchParams(params).toString() : '';
+    return this.request(`/transactions${query}`);
+  }
+
+  // User endpoints
+  async getUsers(params?: any) {
+    const query = params ? '?' + new URLSearchParams(params).toString() : '';
+    return this.request(`/users${query}`);
+  }
+
+  // Category endpoints
+  async getCategories(params?: any) {
+    const query = params ? '?' + new URLSearchParams(params).toString() : '';
+    return this.request(`/categories${query}`);
+  }
+
   // Health check
   async healthCheck() {
     return this.request('/health');

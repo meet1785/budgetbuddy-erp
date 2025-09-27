@@ -2,402 +2,276 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { useAppContext } from "@/context/AppContext";
-import { 
-  Clock, 
-  CheckCircle2, 
-  XCircle, 
-  AlertCircle, 
-  User, 
-  Calendar,
-  DollarSign,
-  FileText,
-  ArrowRight,
-  Send
-} from "lucide-react";
+import { CheckCircle, Clock, XCircle, User, DollarSign, FileText } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { Expense } from "@/types";
 
-export const ExpenseWorkflow = () => {
+interface ExpenseWorkflowProps {
+  expense?: Expense;
+}
+
+export const ExpenseWorkflow = ({ expense }: ExpenseWorkflowProps) => {
   const { state, dispatch } = useAppContext();
-  const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const getExpensesByStatus = () => {
-    return {
-      pending: state.expenses.filter(e => e.status === 'pending'),
-      approved: state.expenses.filter(e => e.status === 'approved'),
-      rejected: state.expenses.filter(e => e.status === 'rejected')
-    };
-  };
+  const workflowSteps = [
+    { id: 'submitted', label: 'Submitted', icon: FileText },
+    { id: 'review', label: 'Under Review', icon: Clock },
+    { id: 'approved', label: 'Approved', icon: CheckCircle },
+    { id: 'processed', label: 'Processed', icon: DollarSign }
+  ];
 
-  const handleStatusChange = (expenseId: string, newStatus: 'approved' | 'rejected') => {
-    const expense = state.expenses.find(e => e.id === expenseId);
-    if (!expense) return;
-
-    const updatedExpense = {
-      ...expense,
-      status: newStatus,
-      approvedBy: newStatus === 'approved' ? state.currentUser?.name : undefined
-    };
-
-    dispatch({ type: 'UPDATE_EXPENSE', payload: updatedExpense });
-
-    toast({
-      title: `Expense ${newStatus}`,
-      description: `The expense has been ${newStatus} successfully.`,
-      variant: newStatus === 'approved' ? 'default' : 'destructive'
-    });
-  };
-
-  const handleBulkApproval = (expenseIds: string[]) => {
-    expenseIds.forEach(id => handleStatusChange(id, 'approved'));
-    toast({
-      title: "Bulk Approval Complete",
-      description: `${expenseIds.length} expenses have been approved.`,
-    });
-  };
-
-  const getStatusIcon = (status: string) => {
+  const getCurrentStepIndex = (status: Expense['status']) => {
     switch (status) {
-      case 'pending':
-        return <Clock className="h-4 w-4 text-yellow-600" />;
-      case 'approved':
-        return <CheckCircle2 className="h-4 w-4 text-green-600" />;
-      case 'rejected':
-        return <XCircle className="h-4 w-4 text-red-600" />;
-      default:
-        return <AlertCircle className="h-4 w-4" />;
+      case 'pending': return 1;
+      case 'approved': return 2;
+      case 'rejected': return -1;
+      default: return 0;
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <Badge variant="default" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
-      case 'approved':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Approved</Badge>;
-      case 'rejected':
-        return <Badge variant="destructive">Rejected</Badge>;
-      default:
-        return <Badge variant="secondary">Unknown</Badge>;
+  const handleApprove = async (expenseId: string) => {
+    setIsProcessing(true);
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const updatedExpense = state.expenses.find(e => e.id === expenseId);
+    if (updatedExpense) {
+      const approved = { ...updatedExpense, status: 'approved' as const, approvedBy: state.currentUser?.name };
+      dispatch({ type: 'UPDATE_EXPENSE', payload: approved });
+      
+      toast({
+        title: "Expense Approved",
+        description: `Expense of $${updatedExpense.amount.toLocaleString()} has been approved.`,
+      });
     }
+    
+    setIsProcessing(false);
   };
 
-  const calculateWorkflowStats = () => {
-    const expenses = getExpensesByStatus();
-    const totalAmount = {
-      pending: expenses.pending.reduce((sum, e) => sum + e.amount, 0),
-      approved: expenses.approved.reduce((sum, e) => sum + e.amount, 0),
-      rejected: expenses.rejected.reduce((sum, e) => sum + e.amount, 0)
-    };
-
-    const totalExpenses = state.expenses.length;
-    const approvalRate = totalExpenses > 0 ? (expenses.approved.length / totalExpenses) * 100 : 0;
-
-    return { expenses, totalAmount, approvalRate };
+  const handleReject = async (expenseId: string) => {
+    setIsProcessing(true);
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const updatedExpense = state.expenses.find(e => e.id === expenseId);
+    if (updatedExpense) {
+      const rejected = { ...updatedExpense, status: 'rejected' as const };
+      dispatch({ type: 'UPDATE_EXPENSE', payload: rejected });
+      
+      toast({
+        title: "Expense Rejected",
+        description: `Expense of $${updatedExpense.amount.toLocaleString()} has been rejected.`,
+        variant: "destructive"
+      });
+    }
+    
+    setIsProcessing(false);
   };
 
-  const { expenses, totalAmount, approvalRate } = calculateWorkflowStats();
-  const selectedExpense = selectedExpenseId ? state.expenses.find(e => e.id === selectedExpenseId) : null;
+  // If no specific expense is provided, show pending expenses workflow
+  if (!expense) {
+    const pendingExpenses = state.expenses.filter(e => e.status === 'pending');
+    const totalPendingAmount = pendingExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+    return (
+      <Card className="animate-fade-in">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Expense Workflow
+          </CardTitle>
+          <CardDescription>
+            Manage pending expense approvals and workflow
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-primary">{pendingExpenses.length}</div>
+              <div className="text-sm text-muted-foreground">Pending Expenses</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-orange-500">
+                ${totalPendingAmount.toLocaleString()}
+              </div>
+              <div className="text-sm text-muted-foreground">Total Amount</div>
+            </div>
+          </div>
+
+          {pendingExpenses.length > 0 ? (
+            <div className="space-y-3">
+              <h4 className="font-medium">Pending Approvals</h4>
+              {pendingExpenses.slice(0, 3).map((exp, index) => (
+                <div 
+                  key={exp.id} 
+                  className="border rounded-lg p-3 space-y-2 animate-fade-in"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h5 className="font-medium text-sm">{exp.description}</h5>
+                      <p className="text-xs text-muted-foreground">
+                        {exp.vendor} • {exp.department}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      ${exp.amount.toLocaleString()}
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleApprove(exp.id)}
+                      disabled={isProcessing}
+                      className="flex-1"
+                    >
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      Approve
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleReject(exp.id)}
+                      disabled={isProcessing}
+                      className="flex-1"
+                    >
+                      <XCircle className="h-3 w-3 mr-1" />
+                      Reject
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              
+              {pendingExpenses.length > 3 && (
+                <Button variant="outline" size="sm" className="w-full">
+                  View All {pendingExpenses.length} Pending Expenses
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-2" />
+              <p className="text-muted-foreground">No pending expenses</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show specific expense workflow
+  const currentStep = getCurrentStepIndex(expense.status);
+  const progress = expense.status === 'rejected' ? 0 : ((currentStep + 1) / workflowSteps.length) * 100;
 
   return (
-    <div className="space-y-6">
-      {/* Workflow Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="animate-fade-in">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{expenses.pending.length}</div>
-            <p className="text-xs text-muted-foreground">
-              ${totalAmount.pending.toLocaleString()}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Approved</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{expenses.approved.length}</div>
-            <p className="text-xs text-muted-foreground">
-              ${totalAmount.approved.toLocaleString()}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Rejected</CardTitle>
-            <XCircle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{expenses.rejected.length}</div>
-            <p className="text-xs text-muted-foreground">
-              ${totalAmount.rejected.toLocaleString()}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Approval Rate</CardTitle>
-            <ArrowRight className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{approvalRate.toFixed(1)}%</div>
-            <Progress value={approvalRate} className="h-2 mt-2" />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Workflow Interface */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Expense Lists */}
-        <div className="lg:col-span-2">
-          <Card className="animate-fade-in">
-            <CardHeader>
-              <CardTitle>Expense Workflow</CardTitle>
-              <CardDescription>Review and manage expense approvals</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="pending" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="pending">
-                    Pending ({expenses.pending.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="approved">
-                    Approved ({expenses.approved.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="rejected">
-                    Rejected ({expenses.rejected.length})
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="pending" className="space-y-4">
-                  {expenses.pending.length > 0 && (
-                    <div className="flex justify-between items-center">
-                      <p className="text-sm text-muted-foreground">
-                        {expenses.pending.length} expenses awaiting approval
-                      </p>
-                      <Button 
-                        size="sm" 
-                        onClick={() => handleBulkApproval(expenses.pending.map(e => e.id))}
-                        disabled={expenses.pending.length === 0}
-                      >
-                        <Send className="h-3 w-3 mr-1" />
-                        Approve All
-                      </Button>
-                    </div>
-                  )}
-                  
-                  {expenses.pending.map(expense => (
-                    <div 
-                      key={expense.id}
-                      className={`border rounded-lg p-4 cursor-pointer transition-colors ${
-                        selectedExpenseId === expense.id ? 'bg-accent' : 'hover:bg-accent/50'
-                      }`}
-                      onClick={() => setSelectedExpenseId(expense.id)}
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex-1">
-                          <h4 className="font-medium">{expense.description}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {expense.vendor} • {expense.department}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-bold">${expense.amount.toLocaleString()}</div>
-                          {getStatusBadge(expense.status)}
-                        </div>
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          {format(expense.date, 'MMM dd, yyyy')}
-                        </div>
-                        
-                        <div className="flex gap-2">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleStatusChange(expense.id, 'approved');
-                            }}
-                          >
-                            <CheckCircle2 className="h-3 w-3" />
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleStatusChange(expense.id, 'rejected');
-                            }}
-                          >
-                            <XCircle className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {expenses.pending.length === 0 && (
-                    <div className="text-center py-8">
-                      <CheckCircle2 className="h-12 w-12 text-green-600 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium mb-2">All Caught Up!</h3>
-                      <p className="text-muted-foreground">No pending expenses to review.</p>
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="approved" className="space-y-4">
-                  {expenses.approved.map(expense => (
-                    <div 
-                      key={expense.id}
-                      className="border rounded-lg p-4 cursor-pointer hover:bg-accent/50"
-                      onClick={() => setSelectedExpenseId(expense.id)}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h4 className="font-medium">{expense.description}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Approved by {expense.approvedBy}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-bold">${expense.amount.toLocaleString()}</div>
-                          {getStatusBadge(expense.status)}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </TabsContent>
-
-                <TabsContent value="rejected" className="space-y-4">
-                  {expenses.rejected.map(expense => (
-                    <div 
-                      key={expense.id}
-                      className="border rounded-lg p-4 cursor-pointer hover:bg-accent/50"
-                      onClick={() => setSelectedExpenseId(expense.id)}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h4 className="font-medium">{expense.description}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Rejected - {expense.vendor}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-bold">${expense.amount.toLocaleString()}</div>
-                          {getStatusBadge(expense.status)}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
+    <Card className="animate-fade-in">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          Expense Workflow
+        </CardTitle>
+        <CardDescription>
+          Track the approval process for this expense
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium">Progress</span>
+            <span className="text-sm text-muted-foreground">
+              {expense.status === 'rejected' ? 'Rejected' : `${Math.round(progress)}%`}
+            </span>
+          </div>
+          <Progress value={progress} className="h-2" />
         </div>
 
-        {/* Expense Details */}
-        <div>
-          <Card className="animate-fade-in">
-            <CardHeader>
-              <CardTitle>Expense Details</CardTitle>
-              <CardDescription>
-                {selectedExpense ? 'Review expense information' : 'Select an expense to view details'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {selectedExpense ? (
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-medium mb-2">{selectedExpense.description}</h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Amount:</span>
-                        <span className="font-medium">${selectedExpense.amount.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Category:</span>
-                        <Badge variant="outline">{selectedExpense.category}</Badge>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Vendor:</span>
-                        <span>{selectedExpense.vendor}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Department:</span>
-                        <span>{selectedExpense.department}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Date:</span>
-                        <span>{format(selectedExpense.date, 'PPP')}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Status:</span>
-                        <div className="flex items-center gap-1">
-                          {getStatusIcon(selectedExpense.status)}
-                          {getStatusBadge(selectedExpense.status)}
-                        </div>
-                      </div>
-                      {selectedExpense.tags && selectedExpense.tags.length > 0 && (
-                        <div>
-                          <span className="text-muted-foreground">Tags:</span>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {selectedExpense.tags.map((tag, index) => (
-                              <Badge key={index} variant="secondary" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+        <div className="space-y-4">
+          {workflowSteps.map((step, index) => {
+            const Icon = step.icon;
+            const isCompleted = index <= currentStep;
+            const isCurrent = index === currentStep;
+            const isRejected = expense.status === 'rejected' && index > 0;
+
+            return (
+              <div 
+                key={step.id}
+                className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                  isCompleted ? 'bg-green-50 border-green-200' : 
+                  isRejected ? 'bg-red-50 border-red-200' : 
+                  'bg-muted/20'
+                }`}
+              >
+                <div className={`p-2 rounded-full ${
+                  isCompleted ? 'bg-green-500 text-white' : 
+                  isRejected ? 'bg-red-500 text-white' :
+                  'bg-muted text-muted-foreground'
+                }`}>
+                  <Icon className="h-4 w-4" />
+                </div>
+                
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`font-medium ${
+                      isCompleted ? 'text-green-700' : 
+                      isRejected ? 'text-red-700' : 
+                      'text-muted-foreground'
+                    }`}>
+                      {step.label}
+                    </span>
+                    {isCurrent && !isRejected && (
+                      <Badge variant="default" className="text-xs">Current</Badge>
+                    )}
                   </div>
-
-                  {selectedExpense.status === 'pending' && (
-                    <div className="flex gap-2 pt-4">
-                      <Button 
-                        className="flex-1"
-                        onClick={() => handleStatusChange(selectedExpense.id, 'approved')}
-                      >
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
-                        Approve
-                      </Button>
-                      <Button 
-                        variant="destructive" 
-                        className="flex-1"
-                        onClick={() => handleStatusChange(selectedExpense.id, 'rejected')}
-                      >
-                        <XCircle className="h-4 w-4 mr-2" />
-                        Reject
-                      </Button>
-                    </div>
+                  
+                  {isCompleted && step.id === 'approved' && expense.approvedBy && (
+                    <p className="text-xs text-muted-foreground">
+                      Approved by {expense.approvedBy}
+                    </p>
                   )}
                 </div>
-              ) : (
-                <div className="text-center py-8">
-                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">
-                    Select an expense from the list to view its details and take action.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            );
+          })}
         </div>
-      </div>
-    </div>
+
+        {expense.status === 'rejected' && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center gap-2 text-red-700">
+              <XCircle className="h-4 w-4" />
+              <span className="font-medium">Expense Rejected</span>
+            </div>
+            <p className="text-sm text-red-600 mt-1">
+              This expense was rejected and will need to be resubmitted with corrections.
+            </p>
+          </div>
+        )}
+
+        {expense.status === 'pending' && state.currentUser?.permissions.includes('approve_expenses') && (
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => handleApprove(expense.id)}
+              disabled={isProcessing}
+              className="flex-1"
+            >
+              {isProcessing ? 'Processing...' : 'Approve'}
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => handleReject(expense.id)}
+              disabled={isProcessing}
+              className="flex-1"
+            >
+              Reject
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
