@@ -7,6 +7,13 @@ import dotenv from 'dotenv';
 
 import connectDatabase from './config/database';
 import { errorHandler, notFound } from './middleware/errorHandler';
+import authRoutes from './routes/auth';
+import budgetRoutes from './routes/budgets';
+import expenseRoutes from './routes/expenses';
+import dashboardRoutes from './routes/dashboard';
+import categoryRoutes from './routes/categories';
+import transactionRoutes from './routes/transactions';
+import userRoutes from './routes/users';
 
 // Load environment variables
 dotenv.config();
@@ -94,11 +101,13 @@ app.get('/api/mock-data', (req, res) => {
   });
 });
 
-// TODO: Add routes when MongoDB is working
-// app.use('/api/auth', authRoutes);
-// app.use('/api/budgets', budgetRoutes);
-// app.use('/api/expenses', expenseRoutes);
-// app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/budgets', budgetRoutes);
+app.use('/api/expenses', expenseRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/users', userRoutes);
 
 // 404 handler
 app.use(notFound);
@@ -106,7 +115,7 @@ app.use(notFound);
 // Error handling middleware (must be last)
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);

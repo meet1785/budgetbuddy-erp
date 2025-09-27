@@ -68,13 +68,13 @@ Open two terminals:
 ```bash
 # Terminal 1 – backend
 cd backend
-npm run dev  # http://localhost:3001
+npm run dev  # http://localhost:3000
 
 # Terminal 2 – frontend
 cd frontend
 npm run dev   # http://localhost:5173
 ```
-The frontend expects the API at `http://localhost:3001/api`. You can override this with `VITE_API_URL` in a frontend `.env` if needed.
+The frontend expects the API at `http://localhost:3000/api`. You can override this with `VITE_API_URL` in a frontend `.env` if needed.
 
 ### 6. Seed sample data (optional)
 ```bash

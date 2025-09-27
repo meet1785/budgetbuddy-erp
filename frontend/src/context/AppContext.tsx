@@ -37,6 +37,159 @@ type AppAction =
   | { type: 'SET_ONLINE'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null };
 
+const defaultMetrics: DashboardMetrics = {
+  totalBudget: 0,
+  totalExpenses: 0,
+  remainingBudget: 0,
+  savingsGoal: 0,
+  monthlyBurnRate: 0,
+  budgetUtilization: 0,
+  expenseGrowth: 0,
+  categoryBreakdown: []
+};
+
+const toDate = (value: unknown, fallback: Date = new Date()): Date => {
+  const date = value ? new Date(value as string | number | Date) : undefined;
+  return date && !Number.isNaN(date.getTime()) ? date : fallback;
+};
+
+const ensureNumber = (value: unknown, fallback = 0): number => {
+  const num = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(num) ? num : fallback;
+};
+
+const normalizeBudget = (data: any): Budget => {
+  const allocated = ensureNumber(data?.allocated);
+  const spent = ensureNumber(data?.spent);
+  return {
+    id: String(data?.id ?? data?._id ?? crypto.randomUUID()),
+    name: data?.name ?? '',
+    category: data?.category ?? '',
+    allocated,
+    spent,
+    remaining: ensureNumber(data?.remaining, allocated - spent),
+    period: (data?.period ?? 'monthly') as Budget['period'],
+    status: (data?.status ?? 'on-track') as Budget['status'],
+    createdAt: toDate(data?.createdAt),
+    updatedAt: toDate(data?.updatedAt)
+  };
+};
+
+const normalizeBudgets = (items: any[] | undefined): Budget[] =>
+  Array.isArray(items) ? items.map(normalizeBudget) : [];
+
+const normalizeExpense = (data: any): Expense => ({
+  id: String(data?.id ?? data?._id ?? crypto.randomUUID()),
+  description: data?.description ?? '',
+  amount: ensureNumber(data?.amount),
+  category: data?.category ?? '',
+  budgetId: data?.budgetId ?? data?.budget?._id ?? undefined,
+  date: toDate(data?.date),
+  vendor: data?.vendor ?? '',
+  receiptUrl: data?.receiptUrl ?? undefined,
+  status: (data?.status ?? 'pending') as Expense['status'],
+  approvedBy: data?.approvedBy ?? undefined,
+  tags: Array.isArray(data?.tags) ? data.tags : [],
+  department: data?.department ?? ''
+});
+
+const normalizeExpenses = (items: any[] | undefined): Expense[] =>
+  Array.isArray(items) ? items.map(normalizeExpense) : [];
+
+const normalizeTransaction = (data: any): Transaction => ({
+  id: String(data?.id ?? data?._id ?? crypto.randomUUID()),
+  type: (data?.type ?? 'expense') as Transaction['type'],
+  amount: ensureNumber(data?.amount),
+  description: data?.description ?? '',
+  category: data?.category ?? '',
+  date: toDate(data?.date),
+  account: data?.account ?? '',
+  reference: data?.reference ?? undefined,
+  status: (data?.status ?? 'pending') as Transaction['status']
+});
+
+const normalizeTransactions = (items: any[] | undefined): Transaction[] =>
+  Array.isArray(items) ? items.map(normalizeTransaction) : [];
+
+const normalizeUser = (data: any): User => ({
+  id: String(data?.id ?? data?._id ?? crypto.randomUUID()),
+  name: data?.name ?? '',
+  email: data?.email ?? '',
+  role: (data?.role ?? 'user') as User['role'],
+  department: data?.department ?? '',
+  avatar: data?.avatar ?? undefined,
+  permissions: Array.isArray(data?.permissions) ? data.permissions : [],
+  createdAt: toDate(data?.createdAt),
+  lastLogin: data?.lastLogin ? toDate(data?.lastLogin) : undefined
+});
+
+const normalizeUsers = (items: any[] | undefined): User[] =>
+  Array.isArray(items) ? items.map(normalizeUser) : [];
+
+const normalizeCategory = (data: any): Category => ({
+  id: String(data?.id ?? data?._id ?? crypto.randomUUID()),
+  name: data?.name ?? '',
+  description: data?.description ?? undefined,
+  budget: data?.budget !== undefined ? ensureNumber(data?.budget) : undefined,
+  color: data?.color ?? '#3B82F6',
+  parentId: data?.parentId ?? undefined,
+  isActive: data?.isActive ?? true
+});
+
+const normalizeCategories = (items: any[] | undefined): Category[] =>
+  Array.isArray(items) ? items.map(normalizeCategory) : [];
+
+const normalizeMetrics = (data: any | undefined): DashboardMetrics => ({
+  totalBudget: ensureNumber(data?.totalBudget),
+  totalExpenses: ensureNumber(data?.totalExpenses),
+  remainingBudget: ensureNumber(data?.remainingBudget),
+  savingsGoal: ensureNumber(data?.savingsGoal),
+  monthlyBurnRate: ensureNumber(data?.monthlyBurnRate),
+  budgetUtilization: ensureNumber(data?.budgetUtilization),
+  expenseGrowth: ensureNumber(data?.expenseGrowth),
+  categoryBreakdown: Array.isArray(data?.categoryBreakdown)
+    ? data.categoryBreakdown.map((item: any) => ({
+        category: item?.category ?? 'Unknown',
+        amount: ensureNumber(item?.amount),
+        percentage: ensureNumber(item?.percentage)
+      }))
+    : []
+});
+
+type BudgetPayload = {
+  name: string;
+  category: string;
+  allocated: number;
+  period: Budget['period'];
+};
+
+type ExpensePayload = {
+  description: string;
+  amount: number;
+  category: string;
+  vendor: string;
+  department: string;
+  date: Date;
+  tags?: string[];
+  budgetId?: string;
+  receiptUrl?: string;
+  status?: Expense['status'];
+};
+
+interface AppContextValue {
+  state: AppState;
+  dispatch: React.Dispatch<AppAction>;
+  refreshData: () => Promise<void>;
+  createBudget: (payload: BudgetPayload) => Promise<Budget>;
+  updateBudget: (id: string, payload: BudgetPayload) => Promise<Budget>;
+  deleteBudget: (id: string) => Promise<void>;
+  createExpense: (payload: ExpensePayload) => Promise<Expense>;
+  updateExpense: (id: string, payload: Partial<ExpensePayload>) => Promise<Expense>;
+  approveExpense: (id: string) => Promise<Expense>;
+  rejectExpense: (id: string) => Promise<Expense>;
+  deleteExpense: (id: string) => Promise<void>;
+}
+
 // Check if backend API is available
 const checkApiHealth = async (): Promise<boolean> => {
   try {
@@ -54,29 +207,15 @@ const loadInitialState = (): AppState => {
     const savedState = localStorage.getItem('erp-app-state');
     if (savedState) {
       const parsed = JSON.parse(savedState);
-      // Convert date strings back to Date objects
-      if (parsed.expenses) {
-        parsed.expenses = parsed.expenses.map((expense: any) => ({
-          ...expense,
-          date: new Date(expense.date)
-        }));
-      }
-      if (parsed.transactions) {
-        parsed.transactions = parsed.transactions.map((transaction: any) => ({
-          ...transaction,
-          date: new Date(transaction.date)
-        }));
-      }
-      if (parsed.budgets) {
-        parsed.budgets = parsed.budgets.map((budget: any) => ({
-          ...budget,
-          createdAt: new Date(budget.createdAt),
-          updatedAt: new Date(budget.updatedAt)
-        }));
-      }
       return {
         ...parsed,
-        isOnline: false, // Will be determined later
+        budgets: normalizeBudgets(parsed.budgets),
+        expenses: normalizeExpenses(parsed.expenses),
+        transactions: normalizeTransactions(parsed.transactions),
+        users: normalizeUsers(parsed.users),
+        categories: normalizeCategories(parsed.categories),
+        metrics: normalizeMetrics(parsed.metrics),
+        isOnline: false,
         error: null
       };
     }
@@ -91,16 +230,7 @@ const loadInitialState = (): AppState => {
     users: [],
     categories: [],
     currentUser: null,
-    metrics: {
-      totalBudget: 0,
-      totalExpenses: 0,
-      remainingBudget: 0,
-      savingsGoal: 0,
-      monthlyBurnRate: 0,
-      budgetUtilization: 0,
-      expenseGrowth: 0,
-      categoryBreakdown: []
-    },
+    metrics: defaultMetrics,
     loading: false,
     selectedPeriod: 'monthly',
     isOnline: false,
@@ -171,11 +301,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
   }
 }
 
-const AppContext = createContext<{
-  state: AppState;
-  dispatch: React.Dispatch<AppAction>;
-  refreshData: () => Promise<void>;
-} | null>(null);
+const AppContext = createContext<AppContextValue | null>(null);
 
 export const useAppContext = () => {
   const context = useContext(AppContext);
@@ -275,6 +401,230 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return () => clearInterval(interval);
   }, []);
 
+  const createBudget = async (payload: BudgetPayload): Promise<Budget> => {
+    dispatch({ type: 'SET_ERROR', payload: null });
+
+    try {
+      if (state.isOnline) {
+        const response = await apiService.createBudget(payload);
+        if (!response.success || !response.data) {
+          throw new Error('Failed to create budget');
+        }
+        const budget = normalizeBudget(response.data);
+        dispatch({ type: 'ADD_BUDGET', payload: budget });
+        return budget;
+      }
+
+      const now = new Date();
+      const offlineBudget = normalizeBudget({
+        ...payload,
+        allocated: payload.allocated,
+        spent: 0,
+        remaining: payload.allocated,
+        status: 'on-track',
+        createdAt: now,
+        updatedAt: now
+      });
+      dispatch({ type: 'ADD_BUDGET', payload: offlineBudget });
+      return offlineBudget;
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to create budget' });
+      throw error;
+    }
+  };
+
+  const updateBudget = async (id: string, payload: BudgetPayload): Promise<Budget> => {
+    dispatch({ type: 'SET_ERROR', payload: null });
+
+    try {
+      if (state.isOnline) {
+        const response = await apiService.updateBudget(id, payload);
+        if (!response.success || !response.data) {
+          throw new Error('Failed to update budget');
+        }
+        const budget = normalizeBudget(response.data);
+        dispatch({ type: 'UPDATE_BUDGET', payload: budget });
+        return budget;
+      }
+
+      const existing = state.budgets.find(budget => budget.id === id);
+      if (!existing) {
+        throw new Error('Budget not found');
+      }
+
+      const offlineBudget = normalizeBudget({
+        ...existing,
+        ...payload,
+        id,
+        spent: existing.spent,
+        updatedAt: new Date()
+      });
+      dispatch({ type: 'UPDATE_BUDGET', payload: offlineBudget });
+      return offlineBudget;
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to update budget' });
+      throw error;
+    }
+  };
+
+  const deleteBudget = async (id: string): Promise<void> => {
+    dispatch({ type: 'SET_ERROR', payload: null });
+
+    try {
+      if (state.isOnline) {
+        const response = await apiService.deleteBudget(id);
+        if (!response.success) {
+          throw new Error('Failed to delete budget');
+        }
+      }
+
+      dispatch({ type: 'DELETE_BUDGET', payload: id });
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to delete budget' });
+      throw error;
+    }
+  };
+
+  const createExpense = async (payload: ExpensePayload): Promise<Expense> => {
+    dispatch({ type: 'SET_ERROR', payload: null });
+
+    try {
+      if (state.isOnline) {
+        const response = await apiService.createExpense(payload);
+        if (!response.success || !response.data) {
+          throw new Error('Failed to create expense');
+        }
+        const expense = normalizeExpense(response.data);
+        dispatch({ type: 'ADD_EXPENSE', payload: expense });
+        return expense;
+      }
+
+      const offlineExpense = normalizeExpense({
+        ...payload,
+        status: payload.status ?? 'pending'
+      });
+      dispatch({ type: 'ADD_EXPENSE', payload: offlineExpense });
+      return offlineExpense;
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to create expense' });
+      throw error;
+    }
+  };
+
+  const updateExpense = async (id: string, payload: Partial<ExpensePayload>): Promise<Expense> => {
+    dispatch({ type: 'SET_ERROR', payload: null });
+
+    try {
+      if (state.isOnline) {
+        const response = await apiService.updateExpense(id, payload);
+        if (!response.success || !response.data) {
+          throw new Error('Failed to update expense');
+        }
+        const expense = normalizeExpense(response.data);
+        dispatch({ type: 'UPDATE_EXPENSE', payload: expense });
+        return expense;
+      }
+
+      const existing = state.expenses.find(expense => expense.id === id);
+      if (!existing) {
+        throw new Error('Expense not found');
+      }
+
+      const offlineExpense = normalizeExpense({
+        ...existing,
+        ...payload,
+        id,
+        status: payload.status ?? existing.status
+      });
+      dispatch({ type: 'UPDATE_EXPENSE', payload: offlineExpense });
+      return offlineExpense;
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to update expense' });
+      throw error;
+    }
+  };
+
+  const approveExpense = async (id: string): Promise<Expense> => {
+    dispatch({ type: 'SET_ERROR', payload: null });
+
+    try {
+      if (state.isOnline) {
+        const response = await apiService.approveExpense(id);
+        if (!response.success || !response.data) {
+          throw new Error('Failed to approve expense');
+        }
+        const expense = normalizeExpense(response.data);
+        dispatch({ type: 'UPDATE_EXPENSE', payload: expense });
+        return expense;
+      }
+
+      const existing = state.expenses.find(expense => expense.id === id);
+      if (!existing) {
+        throw new Error('Expense not found');
+      }
+
+      const offlineExpense: Expense = {
+        ...existing,
+        status: 'approved',
+        approvedBy: existing.approvedBy ?? 'offline-user'
+      };
+      dispatch({ type: 'UPDATE_EXPENSE', payload: offlineExpense });
+      return offlineExpense;
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to approve expense' });
+      throw error;
+    }
+  };
+
+  const rejectExpense = async (id: string): Promise<Expense> => {
+    dispatch({ type: 'SET_ERROR', payload: null });
+
+    try {
+      if (state.isOnline) {
+        const response = await apiService.rejectExpense(id);
+        if (!response.success || !response.data) {
+          throw new Error('Failed to reject expense');
+        }
+        const expense = normalizeExpense(response.data);
+        dispatch({ type: 'UPDATE_EXPENSE', payload: expense });
+        return expense;
+      }
+
+      const existing = state.expenses.find(expense => expense.id === id);
+      if (!existing) {
+        throw new Error('Expense not found');
+      }
+
+      const offlineExpense: Expense = {
+        ...existing,
+        status: 'rejected'
+      };
+      dispatch({ type: 'UPDATE_EXPENSE', payload: offlineExpense });
+      return offlineExpense;
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to reject expense' });
+      throw error;
+    }
+  };
+
+  const deleteExpense = async (id: string): Promise<void> => {
+    dispatch({ type: 'SET_ERROR', payload: null });
+
+    try {
+      if (state.isOnline) {
+        const response = await apiService.deleteExpense(id);
+        if (!response.success) {
+          throw new Error('Failed to delete expense');
+        }
+      }
+
+      dispatch({ type: 'DELETE_EXPENSE', payload: id });
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to delete expense' });
+      throw error;
+    }
+  };
+
   const refreshData = async () => {
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
@@ -282,33 +632,88 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     try {
       if (state.isOnline) {
         // Fetch all data from API when backend is connected
-        const [budgets, expenses, transactions, users, categories, metrics] = await Promise.all([
+        const [
+          budgetsResult,
+          expensesResult,
+          transactionsResult,
+          usersResult,
+          categoriesResult,
+          metricsResult
+        ] = await Promise.allSettled([
           apiService.getBudgets(),
           apiService.getExpenses(),
-          apiService.getTransactions ? apiService.getTransactions() : Promise.resolve({ data: [] }),
-          apiService.getUsers ? apiService.getUsers() : Promise.resolve({ data: [] }),
-          apiService.getCategories ? apiService.getCategories() : Promise.resolve({ data: [] }),
+          apiService.getTransactions(),
+          apiService.getUsers(),
+          apiService.getCategories(),
           apiService.getDashboardMetrics()
         ]);
 
-        // Update state with API data
-        if (budgets.success && budgets.data) {
-          dispatch({ type: 'SET_BUDGETS', payload: budgets.data });
+        const failedResources: string[] = [];
+
+        if (budgetsResult.status === 'fulfilled') {
+          dispatch({
+            type: 'SET_BUDGETS',
+            payload: normalizeBudgets(budgetsResult.value.data as any[] | undefined)
+          });
+        } else {
+          console.error('Failed to load budgets:', budgetsResult.reason);
+          failedResources.push('budgets');
         }
-        if (expenses.success && expenses.data) {
-          dispatch({ type: 'SET_EXPENSES', payload: expenses.data });
+
+        if (expensesResult.status === 'fulfilled') {
+          dispatch({
+            type: 'SET_EXPENSES',
+            payload: normalizeExpenses(expensesResult.value.data as any[] | undefined)
+          });
+        } else {
+          console.error('Failed to load expenses:', expensesResult.reason);
+          failedResources.push('expenses');
         }
-        if (transactions.success && transactions.data) {
-          dispatch({ type: 'SET_TRANSACTIONS', payload: transactions.data });
+
+        if (transactionsResult.status === 'fulfilled') {
+          dispatch({
+            type: 'SET_TRANSACTIONS',
+            payload: normalizeTransactions(transactionsResult.value.data as any[] | undefined)
+          });
+        } else {
+          console.error('Failed to load transactions:', transactionsResult.reason);
+          failedResources.push('transactions');
         }
-        if (users.success && users.data) {
-          dispatch({ type: 'SET_USERS', payload: users.data });
+
+        if (usersResult.status === 'fulfilled') {
+          dispatch({
+            type: 'SET_USERS',
+            payload: normalizeUsers(usersResult.value.data as any[] | undefined)
+          });
+        } else {
+          console.error('Failed to load users:', usersResult.reason);
+          failedResources.push('users');
         }
-        if (categories.success && categories.data) {
-          dispatch({ type: 'SET_CATEGORIES', payload: categories.data });
+
+        if (categoriesResult.status === 'fulfilled') {
+          dispatch({
+            type: 'SET_CATEGORIES',
+            payload: normalizeCategories(categoriesResult.value.data as any[] | undefined)
+          });
+        } else {
+          console.error('Failed to load categories:', categoriesResult.reason);
+          failedResources.push('categories');
         }
-        if (metrics.success && metrics.data) {
-          dispatch({ type: 'SET_METRICS', payload: metrics.data });
+
+        if (metricsResult.status === 'fulfilled') {
+          dispatch({
+            type: 'SET_METRICS',
+            payload: normalizeMetrics(metricsResult.value.data as any)
+          });
+        } else {
+          console.error('Failed to load metrics:', metricsResult.reason);
+        }
+
+        if (failedResources.length > 0) {
+          dispatch({
+            type: 'SET_ERROR',
+            payload: `Some data failed to refresh: ${failedResources.join(', ')}`
+          });
         }
       } else {
         // Recalculate metrics from local data
@@ -324,7 +729,21 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AppContext.Provider value={{ state, dispatch, refreshData }}>
+    <AppContext.Provider
+      value={{
+        state,
+        dispatch,
+        refreshData,
+        createBudget,
+        updateBudget,
+        deleteBudget,
+        createExpense,
+        updateExpense,
+        approveExpense,
+        rejectExpense,
+        deleteExpense
+      }}
+    >
       {children}
     </AppContext.Provider>
   );
