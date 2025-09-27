@@ -3,12 +3,14 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const DEFAULT_CLOUD_URI = 'mongodb+srv://meet:meetshah@project.n6lhrxe.mongodb.net/?retryWrites=true&w=majority&appName=Project';
+
 const getMongoUri = (): string => {
-  // Try cloud MongoDB first, fallback to local
+  // Try cloud MongoDB first, fallback to local when explicitly requested
   if (process.env.USE_LOCAL_MONGO === 'true') {
     return process.env.MONGODB_LOCAL_URI || 'mongodb://localhost:27017/budgetbuddy_erp';
   }
-  return process.env.MONGODB_URI || 'mongodb://localhost:27017/budgetbuddy_erp';
+  return process.env.MONGODB_URI || DEFAULT_CLOUD_URI;
 };
 
 const connectDatabase = async (): Promise<void> => {
@@ -51,7 +53,7 @@ const connectDatabase = async (): Promise<void> => {
       console.log('🔄 Cloud MongoDB connection failed, attempting local fallback...');
       
       try {
-        const localUri = process.env.MONGODB_LOCAL_URI || 'mongodb://localhost:27017/budgetbuddy_erp';
+  const localUri = process.env.MONGODB_LOCAL_URI || 'mongodb://localhost:27017/budgetbuddy_erp';
         const conn = await mongoose.connect(localUri, {
           dbName: process.env.DB_NAME || 'budgetbuddy_erp',
         });

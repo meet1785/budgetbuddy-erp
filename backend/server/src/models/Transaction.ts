@@ -50,11 +50,18 @@ const transactionSchema = new Schema<ITransaction>({
   timestamps: true,
   toJSON: { 
     virtuals: true,
-    transform: function(doc, ret) {
-      ret.id = ret._id;
-      delete ret._id;
-      delete ret.__v;
-      return ret;
+    transform: function(_doc, ret) {
+      const { _id, __v, ...rest } = ret as Record<string, unknown> & {
+        _id?: unknown;
+        __v?: unknown;
+      };
+
+      const id = _id != null ? String(_id) : undefined;
+
+      return {
+        ...rest,
+        id,
+      };
     }
   }
 });

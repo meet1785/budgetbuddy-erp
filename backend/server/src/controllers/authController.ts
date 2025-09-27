@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import { User } from '../models';
 
 interface AuthRequest extends Request {
@@ -12,9 +12,13 @@ const generateToken = (userId: string): string => {
     throw new Error('JWT_SECRET is not defined');
   }
   
-  return jwt.sign({ userId }, jwtSecret, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d'
-  });
+  const secret: Secret = jwtSecret;
+  const options: SignOptions = {};
+  const expiresInEnv = process.env.JWT_EXPIRES_IN;
+
+  options.expiresIn = (expiresInEnv || '7d') as SignOptions['expiresIn'];
+
+  return jwt.sign({ userId }, secret, options);
 };
 
 export const register = async (req: Request, res: Response) => {

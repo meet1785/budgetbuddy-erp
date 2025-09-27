@@ -67,12 +67,19 @@ const userSchema = new Schema<IUser>({
   timestamps: true,
   toJSON: { 
     virtuals: true,
-    transform: function(doc, ret) {
-      ret.id = ret._id;
-      delete ret._id;
-      delete ret.__v;
-      delete ret.password;
-      return ret;
+    transform: function(_doc, ret) {
+      const { _id, __v, password, ...rest } = ret as Record<string, unknown> & {
+        _id?: unknown;
+        __v?: unknown;
+        password?: unknown;
+      };
+
+      const id = _id != null ? String(_id) : undefined;
+
+      return {
+        ...rest,
+        id,
+      };
     }
   }
 });

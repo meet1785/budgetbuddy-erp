@@ -34,7 +34,9 @@ dist-ssr
 *.sqlite
 
 # Build outputs
-server/dist/
+frontend/dist/
+backend/dist/
+backend/server/dist/
 build/
 
 # Logs
@@ -97,9 +99,6 @@ public
 # Temporary folders
 tmp/
 temp/
-
-# Test files
-test-mongo.js
 
 # Docker
 .dockerignore

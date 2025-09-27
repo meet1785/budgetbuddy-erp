@@ -1,30 +1,51 @@
 import { Request, Response } from 'express';
+import { SortOrder } from 'mongoose';
 import { Expense, Budget } from '../models';
 
 interface AuthRequest extends Request {
   user?: any;
 }
 
+const normalizeQueryValue = (value: unknown): string | undefined => {
+  if (Array.isArray(value)) {
+    const [first] = value;
+    return first != null ? String(first) : undefined;
+  }
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  return String(value);
+};
+
+const parsePositiveInt = (value: unknown, fallback: number): number => {
+  const normalized = normalizeQueryValue(value);
+  if (!normalized) return fallback;
+  const parsed = parseInt(normalized, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
 export const getExpenses = async (req: AuthRequest, res: Response) => {
   try {
-    const { category, status, department, page = 1, limit = 10 } = req.query;
+    const { category, status, department, page, limit } = req.query;
     
-    const filter: any = {};
-    if (category) filter.category = category;
-    if (status) filter.status = status;
-    if (department) filter.department = department;
+    const filter: Record<string, unknown> = {};
+    const normalizedCategory = normalizeQueryValue(category);
+    const normalizedStatus = normalizeQueryValue(status);
+    const normalizedDepartment = normalizeQueryValue(department);
 
-    const options = {
-      page: parseInt(page as string),
-      limit: parseInt(limit as string),
-      sort: { createdAt: -1 }
-    };
+    if (normalizedCategory) filter.category = normalizedCategory;
+    if (normalizedStatus) filter.status = normalizedStatus;
+    if (normalizedDepartment) filter.department = normalizedDepartment;
+
+    const pageNumber = parsePositiveInt(page, 1);
+    const limitNumber = parsePositiveInt(limit, 10);
+    const sort: Record<string, SortOrder> = { createdAt: 'desc' };
 
     const expenses = await Expense.find(filter)
       .populate('budgetId', 'name category')
-      .sort(options.sort)
-      .limit(options.limit * options.page)
-      .skip((options.page - 1) * options.limit);
+      .sort(sort)
+      .skip((pageNumber - 1) * limitNumber)
+      .limit(limitNumber);
 
     const total = await Expense.countDocuments(filter);
 
@@ -32,8 +53,8 @@ export const getExpenses = async (req: AuthRequest, res: Response) => {
       success: true,
       data: expenses,
       pagination: {
-        page: options.page,
-        pages: Math.ceil(total / options.limit),
+        page: pageNumber,
+        pages: Math.ceil(total / limitNumber),
         total
       }
     });
