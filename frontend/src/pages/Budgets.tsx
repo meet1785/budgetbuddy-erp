@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "@/hooks/use-toast";
+import { formatCurrency } from "@/utils/currency";
 
 const Budgets = () => {
   const { state, dispatch } = useAppContext();
@@ -69,7 +70,7 @@ const Budgets = () => {
       header: "Allocated",
       cell: ({ row }) => {
         const amount = parseFloat(row.getValue("allocated"));
-        return <div className="font-medium">${amount.toLocaleString()}</div>;
+        return <div className="font-medium">{formatCurrency(amount)}</div>;
       },
     },
     {
@@ -77,7 +78,7 @@ const Budgets = () => {
       header: "Spent",
       cell: ({ row }) => {
         const amount = parseFloat(row.getValue("spent"));
-        return <div className="text-red-600">${amount.toLocaleString()}</div>;
+        return <div className="text-red-600">{formatCurrency(amount)}</div>;
       },
     },
     {
@@ -85,7 +86,7 @@ const Budgets = () => {
       header: "Remaining",
       cell: ({ row }) => {
         const amount = parseFloat(row.getValue("remaining"));
-        return <div className="text-green-600">${amount.toLocaleString()}</div>;
+        return <div className="text-green-600">{formatCurrency(amount)}</div>;
       },
     },
     {

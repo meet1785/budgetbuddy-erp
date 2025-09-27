@@ -5,6 +5,7 @@ import { useAppContext } from "@/context/AppContext";
 import { Transaction } from "@/types";
 import { format } from "date-fns";
 import { ArrowDownLeft, ArrowUpRight, Circle } from "lucide-react";
+import { formatCurrencyWithSign } from "@/utils/currency";
 
 const Transactions = () => {
   const { state } = useAppContext();
@@ -60,7 +61,7 @@ const Transactions = () => {
         const type = row.original.type;
         return (
           <div className={`font-medium ${type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-            {type === 'income' ? '+' : '-'}${amount.toLocaleString()}
+            {formatCurrencyWithSign(type === 'income' ? amount : -amount, true)}
           </div>
         );
       },
@@ -137,7 +138,7 @@ const Transactions = () => {
             <span className="text-sm font-medium text-muted-foreground">Total Income</span>
           </div>
           <div className="text-2xl font-bold text-green-600">
-            +${totalIncome.toLocaleString()}
+            {formatCurrencyWithSign(totalIncome, true)}
           </div>
         </div>
 
@@ -147,7 +148,7 @@ const Transactions = () => {
             <span className="text-sm font-medium text-muted-foreground">Total Expenses</span>
           </div>
           <div className="text-2xl font-bold text-red-600">
-            -${totalExpenses.toLocaleString()}
+            {formatCurrencyWithSign(-totalExpenses, true)}
           </div>
         </div>
 
@@ -157,7 +158,7 @@ const Transactions = () => {
             <span className="text-sm font-medium text-muted-foreground">Net Cash Flow</span>
           </div>
           <div className={`text-2xl font-bold ${netFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {netFlow >= 0 ? '+' : ''}${netFlow.toLocaleString()}
+            {formatCurrencyWithSign(netFlow, true)}
           </div>
         </div>
 
