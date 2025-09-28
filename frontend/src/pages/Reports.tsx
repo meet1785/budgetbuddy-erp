@@ -7,6 +7,7 @@ import { Download, FileText, TrendingUp, Calendar, DollarSign } from "lucide-rea
 import { toast } from "@/hooks/use-toast";
 import { ReportGenerator } from "@/components/advanced/ReportGenerator";
 import { BudgetAlerts } from "@/components/advanced/BudgetAlerts";
+import { formatCurrency } from "@/utils/currency";
 
 const Reports = () => {
   const { state } = useAppContext();
@@ -76,7 +77,7 @@ const Reports = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${stats.totalBudget.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{formatCurrency(stats.totalBudget)}</div>
             <p className="text-xs text-muted-foreground">
               Across {state.budgets.length} budgets
             </p>
@@ -91,7 +92,7 @@ const Reports = () => {
           <CardContent>
             <div className="text-2xl font-bold">{stats.averageUtilization.toFixed(1)}%</div>
             <p className="text-xs text-muted-foreground">
-              ${stats.totalSpent.toLocaleString()} spent
+              {formatCurrency(stats.totalSpent)} spent
             </p>
           </CardContent>
         </Card>
@@ -104,7 +105,7 @@ const Reports = () => {
           <CardContent>
             <div className="text-2xl font-bold">{stats.topCategory?.category}</div>
             <p className="text-xs text-muted-foreground">
-              ${stats.topCategory?.amount.toLocaleString()} spent
+              {formatCurrency(stats.topCategory?.amount || 0)} spent
             </p>
           </CardContent>
         </Card>
@@ -136,7 +137,7 @@ const Reports = () => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
-                <Tooltip formatter={(value: number) => [`$${value.toLocaleString()}`, '']} />
+                <Tooltip formatter={(value: number) => [formatCurrency(value), '']} />
                 <Legend />
                 <Line type="monotone" dataKey="budget" stroke="#3B82F6" strokeWidth={2} name="Budget" />
                 <Line type="monotone" dataKey="expenses" stroke="#EF4444" strokeWidth={2} name="Expenses" />
@@ -156,7 +157,7 @@ const Reports = () => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
-                <Tooltip formatter={(value: number) => [`$${value.toLocaleString()}`, '']} />
+                <Tooltip formatter={(value: number) => [formatCurrency(value), '']} />
                 <Legend />
                 <Area type="monotone" dataKey="revenue" stackId="1" stroke="#10B981" fill="#10B981" fillOpacity={0.6} name="Revenue" />
                 <Area type="monotone" dataKey="expenses" stackId="2" stroke="#F59E0B" fill="#F59E0B" fillOpacity={0.6} name="Expenses" />

@@ -246,7 +246,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, budgets: action.payload };
     case 'ADD_BUDGET':
       return { ...state, budgets: [...state.budgets, action.payload] };
-    case 'UPDATE_BUDGET':
+    case 'UPDATE_BUDGET': {
       const updatedBudget = action.payload;
       // Recalculate status based on spending
       const utilization = (updatedBudget.spent / updatedBudget.allocated) * 100;
@@ -255,6 +255,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         budgets: state.budgets.map(b => b.id === updatedBudget.id ? updatedBudget : b)
       };
+    }
     case 'DELETE_BUDGET':
       return {
         ...state,

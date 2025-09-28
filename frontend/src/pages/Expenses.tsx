@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { formatCurrency } from "@/utils/currency";
 
 const Expenses = () => {
   const { state, dispatch } = useAppContext();
@@ -83,7 +84,7 @@ const Expenses = () => {
       header: "Amount",
       cell: ({ row }) => {
         const amount = parseFloat(row.getValue("amount"));
-        return <div className="font-medium">${amount.toLocaleString()}</div>;
+        return <div className="font-medium">{formatCurrency(amount)}</div>;
       },
     },
     {

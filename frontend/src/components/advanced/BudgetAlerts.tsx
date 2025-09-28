@@ -127,7 +127,17 @@ export const BudgetAlerts = () => {
     }
   };
 
-  const handleAlertAction = (alert: any) => {
+interface BudgetAlert {
+  id: string;
+  type: 'warning' | 'error' | 'info';
+  title: string;
+  message: string;
+  budget?: string;
+  utilization?: number;
+  action?: string;
+}
+
+  const handleAlertAction = (alert: BudgetAlert) => {
     toast({
       title: "Alert Acknowledged",
       description: `Marked "${alert.title}" for ${alert.action}.`,

@@ -10,6 +10,7 @@ import {
   PieChart
 } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
+import { formatCurrency } from "@/utils/currency";
 
 const DashboardOverview = () => {
   const { state } = useAppContext();
@@ -24,7 +25,7 @@ const DashboardOverview = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${state.metrics.totalBudget.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{formatCurrency(state.metrics.totalBudget)}</div>
             <p className="text-xs text-muted-foreground">
               +12.5% from last month
             </p>
@@ -37,7 +38,7 @@ const DashboardOverview = () => {
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${state.metrics.totalExpenses.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{formatCurrency(state.metrics.totalExpenses)}</div>
             <p className="text-xs text-muted-foreground">
               +8.2% from last month
             </p>
@@ -50,7 +51,7 @@ const DashboardOverview = () => {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${state.metrics.remainingBudget.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{formatCurrency(state.metrics.remainingBudget)}</div>
             <p className="text-xs text-muted-foreground">
               {state.metrics.budgetUtilization.toFixed(1)}% utilized
             </p>
@@ -63,7 +64,7 @@ const DashboardOverview = () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${state.metrics.monthlyBurnRate.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{formatCurrency(state.metrics.monthlyBurnRate)}</div>
             <p className="text-xs text-muted-foreground">
               Last 30 days spending
             </p>

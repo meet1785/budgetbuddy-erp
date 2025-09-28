@@ -58,7 +58,7 @@ export interface Report {
     start: Date;
     end: Date;
   };
-  data: any;
+  data: Record<string, unknown>;
   createdBy: string;
   createdAt: Date;
 }

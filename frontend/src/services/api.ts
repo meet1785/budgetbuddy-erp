@@ -1,10 +1,17 @@
+import { User, Budget, Expense, Transaction, Category, DashboardMetrics } from '@/types';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-interface ApiResponse<T = any> {
+interface ApiError {
+  field?: string;
+  message: string;
+}
+
+interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
-  errors?: any[];
+  errors?: ApiError[];
   pagination?: {
     page: number;
     pages: number;
@@ -61,7 +68,7 @@ class ApiService {
 
   // Auth endpoints
   async login(email: string, password: string) {
-    const response = await this.request<{ user: any; token: string }>('/auth/login', {
+    const response = await this.request<{ user: User; token: string }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
@@ -73,98 +80,104 @@ class ApiService {
     return response;
   }
 
-  async register(userData: any) {
-    return this.request('/auth/register', {
+  async register(userData: {
+    name: string;
+    email: string;
+    password: string;
+    role?: string;
+    department: string;
+  }) {
+    return this.request<User>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
   }
 
   async getProfile() {
-    return this.request('/auth/profile');
+    return this.request<User>('/auth/profile');
   }
 
   // Dashboard endpoints
   async getDashboardMetrics() {
-    return this.request('/dashboard/metrics');
+    return this.request<DashboardMetrics>('/dashboard/metrics');
   }
 
   async getBudgetAlerts() {
-    return this.request('/dashboard/alerts');
+    return this.request<{ alerts: Array<{ type: string; title: string; message: string }> }>('/dashboard/alerts');
   }
 
   async getRecentTransactions(limit?: number) {
     const query = limit ? `?limit=${limit}` : '';
-    return this.request(`/dashboard/recent-transactions${query}`);
+    return this.request<Transaction[]>(`/dashboard/recent-transactions${query}`);
   }
 
   async getPendingExpenses(limit?: number) {
     const query = limit ? `?limit=${limit}` : '';
-    return this.request(`/dashboard/pending-expenses${query}`);
+    return this.request<Expense[]>(`/dashboard/pending-expenses${query}`);
   }
 
   // Budget endpoints
-  async getBudgets(params?: any) {
+  async getBudgets(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
     return this.request(`/budgets${query}`);
   }
 
   async getBudget(id: string) {
-    return this.request(`/budgets/${id}`);
+    return this.request<Budget>(`/budgets/${id}`);
   }
 
-  async createBudget(budgetData: any) {
-    return this.request('/budgets', {
+  async createBudget(budgetData: Partial<Budget>) {
+    return this.request<Budget>('/budgets', {
       method: 'POST',
       body: JSON.stringify(budgetData),
     });
   }
 
-  async updateBudget(id: string, budgetData: any) {
-    return this.request(`/budgets/${id}`, {
+  async updateBudget(id: string, budgetData: Partial<Budget>) {
+    return this.request<Budget>(`/budgets/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(budgetData),
     });
   }
 
   async deleteBudget(id: string) {
-    return this.request(`/budgets/${id}`, {
+    return this.request<{ success: boolean }>(`/budgets/${id}`, {
       method: 'DELETE',
     });
   }
 
   // Expense endpoints
-  async getExpenses(params?: any) {
+  async getExpenses(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
-    return this.request(`/expenses${query}`);
+    return this.request<Expense[]>(`/expenses${query}`);
   }
 
   async getExpense(id: string) {
-    return this.request(`/expenses/${id}`);
+    return this.request<Expense>(`/expenses/${id}`);
   }
 
-  async createExpense(expenseData: any) {
-    return this.request('/expenses', {
+  async createExpense(expenseData: Partial<Expense>) {
+    return this.request<Expense>('/expenses', {
       method: 'POST',
       body: JSON.stringify(expenseData),
     });
   }
 
-  async updateExpense(id: string, expenseData: any) {
-    return this.request(`/expenses/${id}`, {
+  async updateExpense(id: string, expenseData: Partial<Expense>) {
+    return this.request<Expense>(`/expenses/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(expenseData),
     });
   }
 
   async approveExpense(id: string) {
-    return this.request(`/expenses/${id}/approve`, {
+    return this.request<Expense>(`/expenses/${id}/approve`, {
       method: 'PATCH',
     });
   }
 
   async rejectExpense(id: string) {
-    return this.request(`/expenses/${id}/reject`, {
+    return this.request<Expense>(`/expenses/${id}/reject`, {
       method: 'PATCH',
     });
   }
@@ -176,21 +189,21 @@ class ApiService {
   }
 
   // Transaction endpoints
-  async getTransactions(params?: any) {
+  async getTransactions(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
-    return this.request(`/transactions${query}`);
+    return this.request<Transaction[]>(`/transactions${query}`);
   }
 
   // User endpoints
-  async getUsers(params?: any) {
+  async getUsers(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
-    return this.request(`/users${query}`);
+    return this.request<User[]>(`/users${query}`);
   }
 
   // Category endpoints
-  async getCategories(params?: any) {
+  async getCategories(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
-    return this.request(`/categories${query}`);
+    return this.request<Category[]>(`/categories${query}`);
   }
 
   // Health check

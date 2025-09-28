@@ -89,19 +89,27 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
 
+interface ChartPayloadItem {
+  value: number | string;
+  name?: string;
+  color?: string;
+  dataKey?: string;
+  payload?: Record<string, unknown>;
+}
+
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
   {
     active?: boolean;
-    payload?: any[];
-    label?: any;
+    payload?: ChartPayloadItem[];
+    label?: string | number;
     className?: string;
     indicator?: "line" | "dot" | "dashed";
     hideLabel?: boolean;
     hideIndicator?: boolean;
-    labelFormatter?: (value: any, payload: any[]) => React.ReactNode;
+    labelFormatter?: (value: string | number, payload: ChartPayloadItem[]) => React.ReactNode;
     labelClassName?: string;
-    formatter?: (value: any, name: any, item: any, index: number, payload: any[]) => React.ReactNode;
+    formatter?: (value: string | number, name: string, item: ChartPayloadItem, index: number, payload: ChartPayloadItem[]) => React.ReactNode;
     color?: string;
     nameKey?: string;
     labelKey?: string;
@@ -234,10 +242,17 @@ ChartTooltipContent.displayName = "ChartTooltip";
 
 const ChartLegend = RechartsPrimitive.Legend;
 
+interface ChartLegendItem {
+  value?: string;
+  color?: string;
+  dataKey?: string;
+  type?: string;
+}
+
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
-    payload?: any[];
+    payload?: ChartLegendItem[];
     verticalAlign?: "top" | "bottom";
     hideIcon?: boolean;
     nameKey?: string;
