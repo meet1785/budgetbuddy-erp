@@ -52,15 +52,27 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Rate limiting
+const isProduction = process.env.NODE_ENV === 'production';
+const shouldSkipRateLimit = () => {
+  if (process.env.DISABLE_RATE_LIMIT === 'true') {
+    return true;
+  }
+  if (!isProduction && process.env.ENABLE_RATE_LIMIT !== 'true') {
+    return true;
+  }
+  return false;
+};
+
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS ?? 15 * 60 * 1000),
+  max: Number(process.env.RATE_LIMIT_MAX ?? (isProduction ? 100 : 1000)),
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again later.'
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  skip: shouldSkipRateLimit
 });
 
 app.use('/api/', limiter);

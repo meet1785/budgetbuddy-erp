@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { SortOrder } from 'mongoose';
-import { Budget } from '../models';
+import { Budget, Expense } from '../models';
 
 interface AuthRequest extends Request {
   user?: any;
@@ -115,11 +115,7 @@ export const createBudget = async (req: AuthRequest, res: Response) => {
 
 export const updateBudget = async (req: Request, res: Response) => {
   try {
-    const budget = await Budget.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
+    const budget = await Budget.findById(req.params.id);
 
     if (!budget) {
       return res.status(404).json({
@@ -127,6 +123,45 @@ export const updateBudget = async (req: Request, res: Response) => {
         message: 'Budget not found'
       });
     }
+
+  const allowedUpdates = ['name', 'category', 'allocated', 'period'];
+    const updates = Object.keys(req.body);
+    const invalidField = updates.find(field => !allowedUpdates.includes(field));
+    if (invalidField) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid field provided: ${invalidField}`
+      });
+    }
+
+    updates.forEach(field => {
+      (budget as any)[field] = req.body[field];
+    });
+
+    // Recalculate derived fields
+    const approvedExpenses = await Expense.aggregate([
+      { $match: { budgetId: budget._id, status: 'approved' } },
+      {
+        $group: {
+          _id: '$budgetId',
+          total: { $sum: '$amount' }
+        }
+      }
+    ]);
+
+    const currentSpent = approvedExpenses[0]?.total ?? 0;
+    budget.spent = currentSpent;
+    budget.remaining = budget.allocated - currentSpent;
+    const utilization = (currentSpent / (budget.allocated || 1)) * 100;
+    if (utilization >= 90) {
+      budget.status = 'over-budget';
+    } else if (utilization >= 75) {
+      budget.status = 'warning';
+    } else {
+      budget.status = 'on-track';
+    }
+
+    await budget.save();
 
     res.json({
       success: true,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,43 +18,86 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { formatCurrency } from "@/utils/currency";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const Expenses = () => {
-  const { state, dispatch } = useAppContext();
+  const { state, deleteExpense, approveExpense, rejectExpense } = useAppContext();
   const [showForm, setShowForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | undefined>();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const handleEdit = (expense: Expense) => {
     setEditingExpense(expense);
     setShowForm(true);
+    navigate({ pathname: location.pathname, search: "?modal=expense" }, { replace: true });
   };
 
-  const handleDelete = (expenseId: string) => {
-    dispatch({ type: 'DELETE_EXPENSE', payload: expenseId });
-    toast({
-      title: "Expense deleted",
-      description: "The expense has been removed successfully.",
-    });
+  const handleDelete = async (expenseId: string) => {
+    try {
+      await deleteExpense(expenseId);
+      toast({
+        title: "Expense deleted",
+        description: "The expense has been removed successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Unable to delete expense",
+        description: error?.message || 'Something went wrong while deleting the expense.',
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleApprove = (expense: Expense) => {
-    const updatedExpense = { ...expense, status: 'approved' as const };
-    dispatch({ type: 'UPDATE_EXPENSE', payload: updatedExpense });
-    toast({
-      title: "Expense approved",
-      description: "The expense has been approved successfully.",
-    });
+  const handleApprove = async (expense: Expense) => {
+    try {
+      await approveExpense(expense.id);
+      toast({
+        title: "Expense approved",
+        description: "The expense has been approved successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Unable to approve expense",
+        description: error?.message || 'Something went wrong while approving the expense.',
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleReject = (expense: Expense) => {
-    const updatedExpense = { ...expense, status: 'rejected' as const };
-    dispatch({ type: 'UPDATE_EXPENSE', payload: updatedExpense });
-    toast({
-      title: "Expense rejected",
-      description: "The expense has been rejected.",
-      variant: "destructive"
-    });
+  const handleReject = async (expense: Expense) => {
+    try {
+      await rejectExpense(expense.id);
+      toast({
+        title: "Expense rejected",
+        description: "The expense has been rejected.",
+        variant: "destructive"
+      });
+    } catch (error: any) {
+      toast({
+        title: "Unable to reject expense",
+        description: error?.message || 'Something went wrong while rejecting the expense.',
+        variant: "destructive",
+      });
+    }
   };
+
+  const closeModal = () => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('modal') === 'expense') {
+      params.delete('modal');
+      navigate({ pathname: location.pathname, search: params.toString() ? `?${params.toString()}` : '' }, { replace: true });
+    }
+    setShowForm(false);
+    setEditingExpense(undefined);
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('modal') === 'expense') {
+      setShowForm(true);
+    }
+  }, [location.search]);
 
   const getStatusBadge = (status: Expense['status']) => {
     switch (status) {
@@ -187,9 +230,22 @@ const Expenses = () => {
           </p>
         </div>
         
-        <Dialog open={showForm} onOpenChange={setShowForm}>
+        <Dialog open={showForm} onOpenChange={(open) => {
+          if (!open) {
+            closeModal();
+          } else {
+            setShowForm(true);
+          }
+        }}>
           <DialogTrigger asChild>
-            <Button className="gap-2 animate-bounce-gentle">
+            <Button
+              className="gap-2 animate-bounce-gentle"
+              onClick={() => {
+                setEditingExpense(undefined);
+                setShowForm(true);
+                navigate({ pathname: location.pathname, search: "?modal=expense" }, { replace: true });
+              }}
+            >
               <Plus className="h-4 w-4" />
               Add Expense
             </Button>
@@ -198,8 +254,7 @@ const Expenses = () => {
             <ExpenseForm 
               expense={editingExpense}
               onSuccess={() => {
-                setShowForm(false);
-                setEditingExpense(undefined);
+                closeModal();
               }} 
             />
           </DialogContent>

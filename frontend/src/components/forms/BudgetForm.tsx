@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -41,7 +42,8 @@ interface BudgetFormProps {
 }
 
 export function BudgetForm({ budget, onSuccess }: BudgetFormProps) {
-  const { state, dispatch } = useAppContext();
+  const { state, createBudget, updateBudget } = useAppContext();
+  const [submitting, setSubmitting] = useState(false);
   
   const form = useForm<BudgetFormValues>({
     resolver: zodResolver(budgetFormSchema),
@@ -53,36 +55,41 @@ export function BudgetForm({ budget, onSuccess }: BudgetFormProps) {
     },
   });
 
-  function onSubmit(values: BudgetFormValues) {
-    const newBudget: Budget = {
-      id: budget?.id || Date.now().toString(),
+  const onSubmit = async (values: BudgetFormValues) => {
+    const payload = {
       name: values.name,
       category: values.category,
       allocated: Number(values.allocated),
-      spent: budget?.spent || 0,
-      remaining: Number(values.allocated) - (budget?.spent || 0),
       period: values.period,
-      status: 'on-track',
-      createdAt: budget?.createdAt || new Date(),
-      updatedAt: new Date(),
     };
 
-    if (budget) {
-      dispatch({ type: 'UPDATE_BUDGET', payload: newBudget });
-      toast({
-        title: "Budget updated",
-        description: "Your budget has been updated successfully.",
-      });
-    } else {
-      dispatch({ type: 'ADD_BUDGET', payload: newBudget });
-      toast({
-        title: "Budget created",
-        description: "Your new budget has been created successfully.",
-      });
-    }
+    setSubmitting(true);
+    try {
+      if (budget) {
+        await updateBudget(budget.id, payload);
+        toast({
+          title: "Budget updated",
+          description: "Your budget has been updated successfully.",
+        });
+      } else {
+        await createBudget(payload);
+        toast({
+          title: "Budget created",
+          description: "Your new budget has been created successfully.",
+        });
+      }
 
-    onSuccess?.();
-  }
+      onSuccess?.();
+    } catch (error: any) {
+      toast({
+        title: "Unable to save budget",
+        description: error?.message || 'Something went wrong while saving the budget.',
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <Card className="animate-scale-in">
@@ -184,7 +191,7 @@ export function BudgetForm({ budget, onSuccess }: BudgetFormProps) {
             />
 
             <div className="flex gap-3">
-              <Button type="submit" className="flex-1">
+              <Button type="submit" className="flex-1" disabled={submitting}>
                 {budget ? 'Update Budget' : 'Create Budget'}
               </Button>
               <Button type="button" variant="outline" onClick={onSuccess}>

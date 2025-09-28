@@ -62,16 +62,22 @@ const userSchema = new Schema<IUser>({
   isActive: {
     type: Boolean,
     default: true
+  },
+  tokenVersion: {
+    type: Number,
+    default: 0,
+    required: true
   }
 }, {
   timestamps: true,
   toJSON: { 
     virtuals: true,
     transform: function(_doc, ret) {
-      const { _id, __v, password, ...rest } = ret as Record<string, unknown> & {
+      const { _id, __v, password, tokenVersion, ...rest } = ret as Record<string, unknown> & {
         _id?: unknown;
         __v?: unknown;
         password?: unknown;
+        tokenVersion?: unknown;
       };
 
       const id = _id != null ? String(_id) : undefined;
@@ -112,5 +118,6 @@ userSchema.methods.updateLastLogin = function() {
 userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ role: 1, department: 1 });
 userSchema.index({ isActive: 1 });
+userSchema.index({ tokenVersion: 1 });
 
 export const User = mongoose.model<IUser>('User', userSchema);

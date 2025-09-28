@@ -215,6 +215,8 @@ export const changeUserPassword = async (req: Request, res: Response) => {
     user.password = newPassword;
     await user.save();
 
+  await User.findByIdAndUpdate(req.params.id, { $inc: { tokenVersion: 1 } });
+
     res.json({
       success: true,
       message: 'Password updated successfully'
@@ -249,6 +251,8 @@ export const deactivateUser = async (req: AuthRequest, res: Response) => {
     user.isActive = false;
     await user.save();
 
+  await User.findByIdAndUpdate(req.params.id, { $inc: { tokenVersion: 1 } });
+
     res.json({
       success: true,
       message: 'User deactivated successfully'
@@ -275,6 +279,8 @@ export const reactivateUser = async (req: Request, res: Response) => {
 
     user.isActive = true;
     await user.save();
+
+  await User.findByIdAndUpdate(req.params.id, { $inc: { tokenVersion: 1 } });
 
     res.json({
       success: true,

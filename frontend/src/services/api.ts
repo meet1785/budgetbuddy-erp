@@ -1,6 +1,9 @@
 import { User, Budget, Expense, Transaction, Category, DashboardMetrics } from '@/types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const envApiUrl = import.meta.env.VITE_API_URL?.trim();
+const API_BASE_URL =
+  (envApiUrl && envApiUrl.replace(/\/$/, '')) ||
+  (typeof window !== 'undefined' ? '/api' : 'http://localhost:3000/api');
 
 interface ApiError {
   field?: string;
@@ -43,13 +46,26 @@ class ApiService {
 
     try {
       const response = await fetch(url, config);
-      const data = await response.json();
+      let data: ApiResponse<T> | null = null;
 
-      if (!response.ok) {
-        throw new Error(data.message || 'API request failed');
+      if (response.status !== 204) {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          data = await response.json();
+        }
       }
 
-      return data;
+      if (!response.ok) {
+        if (response.status === 401) {
+          this.clearToken();
+        }
+        const message = data?.message || 'API request failed';
+        const error = new Error(message) as Error & { response?: Response };
+        error.response = response;
+        throw error;
+      }
+
+      return data ?? { success: true };
     } catch (error) {
       console.error(`API Error (${endpoint}):`, error);
       throw error;
@@ -87,14 +103,30 @@ class ApiService {
     role?: string;
     department: string;
   }) {
-    return this.request<User>('/auth/register', {
+    const response = await this.request<{ user: User; token: string }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
+
+    if (response.success && response.data?.token) {
+      this.setToken(response.data.token);
+    }
+
+    return response;
   }
 
   async getProfile() {
     return this.request<User>('/auth/profile');
+  }
+
+  async logout() {
+    const response = await this.request('/auth/logout', {
+      method: 'POST'
+    });
+    if (response.success) {
+      this.clearToken();
+    }
+    return response;
   }
 
   // Dashboard endpoints
@@ -103,7 +135,7 @@ class ApiService {
   }
 
   async getBudgetAlerts() {
-    return this.request<{ alerts: Array<{ type: string; title: string; message: string }> }>('/dashboard/alerts');
+    return this.request<Array<{ type: string; title: string; message: string; utilization?: number }>>('/dashboard/alerts');
   }
 
   async getRecentTransactions(limit?: number) {
@@ -194,16 +226,89 @@ class ApiService {
     return this.request<Transaction[]>(`/transactions${query}`);
   }
 
+  async createTransaction(transactionData: Partial<Transaction>) {
+    return this.request<Transaction>('/transactions', {
+      method: 'POST',
+      body: JSON.stringify(transactionData),
+    });
+  }
+
+  async updateTransaction(id: string, transactionData: Partial<Transaction>) {
+    return this.request<Transaction>(`/transactions/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(transactionData),
+    });
+  }
+
+  async deleteTransaction(id: string) {
+    return this.request(`/transactions/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // User endpoints
   async getUsers(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
     return this.request<User[]>(`/users${query}`);
   }
 
+  async createUser(userData: Partial<User> & { password: string }) {
+    return this.request<User>('/users', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async updateUser(id: string, userData: Partial<User>) {
+    return this.request<User>(`/users/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async changeUserPassword(id: string, newPassword: string) {
+    return this.request(`/users/${id}/password`, {
+      method: 'PATCH',
+      body: JSON.stringify({ newPassword }),
+    });
+  }
+
+  async deactivateUser(id: string) {
+    return this.request(`/users/${id}/deactivate`, {
+      method: 'PATCH',
+    });
+  }
+
+  async reactivateUser(id: string) {
+    return this.request(`/users/${id}/reactivate`, {
+      method: 'PATCH',
+    });
+  }
+
   // Category endpoints
   async getCategories(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
     return this.request<Category[]>(`/categories${query}`);
+  }
+
+  async createCategory(categoryData: Partial<Category>) {
+    return this.request<Category>('/categories', {
+      method: 'POST',
+      body: JSON.stringify(categoryData),
+    });
+  }
+
+  async updateCategory(id: string, categoryData: Partial<Category>) {
+    return this.request<Category>(`/categories/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(categoryData),
+    });
+  }
+
+  async deleteCategory(id: string) {
+    return this.request(`/categories/${id}`, {
+      method: 'DELETE',
+    });
   }
 
   // Health check

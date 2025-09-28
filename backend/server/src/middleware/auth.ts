@@ -18,7 +18,7 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
       });
     }
 
-    const jwtSecret = process.env.JWT_SECRET;
+    const jwtSecret = process.env.JWT_SECRET || (process.env.NODE_ENV !== 'production' ? 'development-secret' : undefined);
     if (!jwtSecret) {
       console.error('JWT_SECRET is not defined');
       return res.status(500).json({ 
@@ -27,13 +27,20 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
       });
     }
 
-    const decoded = jwt.verify(token, jwtSecret) as { userId: string };
+    const decoded = jwt.verify(token, jwtSecret) as { userId: string; tokenVersion?: number };
     const user = await User.findById(decoded.userId).select('+password');
     
     if (!user || !user.isActive) {
       return res.status(401).json({ 
         success: false, 
         message: 'Invalid token or user not found.' 
+      });
+    }
+
+    if (typeof decoded.tokenVersion === 'number' && decoded.tokenVersion !== user.tokenVersion) {
+      return res.status(401).json({
+        success: false,
+        message: 'Session expired. Please log in again.'
       });
     }
 

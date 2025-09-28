@@ -8,7 +8,7 @@ A full-stack finance management system that combines a modern React frontend wit
 - **Rich ERP features:** budgets, expenses, transactions, reports, categories, and user management with role-based access.
 - **Production-ready backend:** Express.js (TypeScript), MongoDB Atlas, JWT auth, rate limiting, helmet, CORS, and comprehensive error handling.
 - **Modern frontend:** React 18 + Vite, Tailwind CSS with shadcn/ui, TanStack Query/Table, React Hook Form + Zod, and advanced dashboard widgets.
-- **Out-of-the-box cloud DB:** Defaults to `mongodb+srv://meet:meetshah@project.n6lhrxe.mongodb.net/` while allowing local fallbacks via env flags.
+
 
 ## 🏗️ Architecture Overview
 | Layer     | Stack & Notes |
@@ -57,7 +57,7 @@ cp .env.example .env
 ```
 The backend `.env` is pre-populated with:
 ```
-MONGODB_URI=mongodb+srv://meet:meetshah@project.n6lhrxe.mongodb.net/?retryWrites=true&w=majority&appName=Project
+
 FRONTEND_URL=http://localhost:5173
 ```
 Adjust values only if you need a different database or frontend URL. Set `USE_LOCAL_MONGO=true` to fall back to a local MongoDB instance defined by `MONGODB_LOCAL_URI`.
