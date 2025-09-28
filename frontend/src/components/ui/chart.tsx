@@ -89,24 +89,37 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
 
-const ChartTooltipContent = React.forwardRef<
-  HTMLDivElement,
-  {
-    active?: boolean;
-    payload?: any[];
-    label?: any;
-    className?: string;
-    indicator?: "line" | "dot" | "dashed";
-    hideLabel?: boolean;
-    hideIndicator?: boolean;
-    labelFormatter?: (value: any, payload: any[]) => React.ReactNode;
-    labelClassName?: string;
-    formatter?: (value: any, name: any, item: any, index: number, payload: any[]) => React.ReactNode;
-    color?: string;
-    nameKey?: string;
-    labelKey?: string;
-  }
->(
+interface PayloadItem {
+  value: number | string;
+  name: string;
+  color: string;
+  dataKey: string;
+  payload: Record<string, unknown>;
+}
+
+interface ChartTooltipContentProps {
+  active?: boolean;
+  payload?: PayloadItem[];
+  label?: string | number;
+  className?: string;
+  indicator?: "line" | "dot" | "dashed";
+  hideLabel?: boolean;
+  hideIndicator?: boolean;
+  labelFormatter?: (value: string | number, payload: PayloadItem[]) => React.ReactNode;
+  labelClassName?: string;
+  formatter?: (
+    value: number | string, 
+    name: string, 
+    item: PayloadItem, 
+    index: number, 
+    payload: PayloadItem[]
+  ) => React.ReactNode;
+  color?: string;
+  nameKey?: string;
+  labelKey?: string;
+}
+
+const ChartTooltipContent = React.forwardRef<HTMLDivElement, ChartTooltipContentProps>(
   (
     {
       active,
@@ -234,10 +247,17 @@ ChartTooltipContent.displayName = "ChartTooltip";
 
 const ChartLegend = RechartsPrimitive.Legend;
 
+interface LegendPayloadItem {
+  value: string;
+  type: string;
+  color: string;
+  dataKey: string;
+}
+
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
-    payload?: any[];
+    payload?: LegendPayloadItem[];
     verticalAlign?: "top" | "bottom";
     hideIcon?: boolean;
     nameKey?: string;

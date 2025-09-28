@@ -14,7 +14,9 @@ import {
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 
-interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
+interface SidebarProps {
+  className?: string;
+}
 
 const navigation = [
   {

@@ -1,10 +1,29 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-interface ApiResponse<T = any> {
+import { Budget, Expense, Transaction, User, DashboardMetrics, Category } from '../types';
+
+interface LoginResponse {
+  user: User;
+  token: string;
+}
+
+interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+  role?: 'admin' | 'manager' | 'user';
+  department?: string;
+}
+
+interface ApiParams {
+  [key: string]: string | number;
+}
+
+interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
-  errors?: any[];
+  errors?: Record<string, string>[];
   pagination?: {
     page: number;
     pages: number;
@@ -61,7 +80,7 @@ class ApiService {
 
   // Auth endpoints
   async login(email: string, password: string) {
-    const response = await this.request<{ user: any; token: string }>('/auth/login', {
+    const response = await this.request<LoginResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
@@ -73,20 +92,20 @@ class ApiService {
     return response;
   }
 
-  async register(userData: any) {
-    return this.request('/auth/register', {
+  async register(userData: RegisterData) {
+    return this.request<LoginResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
   }
 
   async getProfile() {
-    return this.request('/auth/profile');
+    return this.request<User>('/auth/profile');
   }
 
   // Dashboard endpoints
   async getDashboardMetrics() {
-    return this.request('/dashboard/metrics');
+    return this.request<DashboardMetrics>('/dashboard/metrics');
   }
 
   async getBudgetAlerts() {
@@ -95,33 +114,33 @@ class ApiService {
 
   async getRecentTransactions(limit?: number) {
     const query = limit ? `?limit=${limit}` : '';
-    return this.request(`/dashboard/recent-transactions${query}`);
+    return this.request<Transaction[]>(`/dashboard/recent-transactions${query}`);
   }
 
   async getPendingExpenses(limit?: number) {
     const query = limit ? `?limit=${limit}` : '';
-    return this.request(`/dashboard/pending-expenses${query}`);
+    return this.request<Expense[]>(`/dashboard/pending-expenses${query}`);
   }
 
   // Budget endpoints
-  async getBudgets(params?: any) {
-    const query = params ? '?' + new URLSearchParams(params).toString() : '';
-    return this.request(`/budgets${query}`);
+  async getBudgets(params?: ApiParams) {
+    const query = params ? '?' + new URLSearchParams(params as Record<string, string>).toString() : '';
+    return this.request<Budget[]>(`/budgets${query}`);
   }
 
   async getBudget(id: string) {
-    return this.request(`/budgets/${id}`);
+    return this.request<Budget>(`/budgets/${id}`);
   }
 
-  async createBudget(budgetData: any) {
-    return this.request('/budgets', {
+  async createBudget(budgetData: Omit<Budget, 'id' | 'createdAt' | 'updatedAt'>) {
+    return this.request<Budget>('/budgets', {
       method: 'POST',
       body: JSON.stringify(budgetData),
     });
   }
 
-  async updateBudget(id: string, budgetData: any) {
-    return this.request(`/budgets/${id}`, {
+  async updateBudget(id: string, budgetData: Partial<Budget>) {
+    return this.request<Budget>(`/budgets/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(budgetData),
     });
@@ -134,37 +153,37 @@ class ApiService {
   }
 
   // Expense endpoints
-  async getExpenses(params?: any) {
-    const query = params ? '?' + new URLSearchParams(params).toString() : '';
-    return this.request(`/expenses${query}`);
+  async getExpenses(params?: ApiParams) {
+    const query = params ? '?' + new URLSearchParams(params as Record<string, string>).toString() : '';
+    return this.request<Expense[]>(`/expenses${query}`);
   }
 
   async getExpense(id: string) {
-    return this.request(`/expenses/${id}`);
+    return this.request<Expense>(`/expenses/${id}`);
   }
 
-  async createExpense(expenseData: any) {
-    return this.request('/expenses', {
+  async createExpense(expenseData: Omit<Expense, 'id'>) {
+    return this.request<Expense>('/expenses', {
       method: 'POST',
       body: JSON.stringify(expenseData),
     });
   }
 
-  async updateExpense(id: string, expenseData: any) {
-    return this.request(`/expenses/${id}`, {
+  async updateExpense(id: string, expenseData: Partial<Expense>) {
+    return this.request<Expense>(`/expenses/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(expenseData),
     });
   }
 
   async approveExpense(id: string) {
-    return this.request(`/expenses/${id}/approve`, {
+    return this.request<Expense>(`/expenses/${id}/approve`, {
       method: 'PATCH',
     });
   }
 
   async rejectExpense(id: string) {
-    return this.request(`/expenses/${id}/reject`, {
+    return this.request<Expense>(`/expenses/${id}/reject`, {
       method: 'PATCH',
     });
   }
@@ -176,21 +195,21 @@ class ApiService {
   }
 
   // Transaction endpoints
-  async getTransactions(params?: any) {
-    const query = params ? '?' + new URLSearchParams(params).toString() : '';
-    return this.request(`/transactions${query}`);
+  async getTransactions(params?: ApiParams) {
+    const query = params ? '?' + new URLSearchParams(params as Record<string, string>).toString() : '';
+    return this.request<Transaction[]>(`/transactions${query}`);
   }
 
   // User endpoints
-  async getUsers(params?: any) {
-    const query = params ? '?' + new URLSearchParams(params).toString() : '';
-    return this.request(`/users${query}`);
+  async getUsers(params?: ApiParams) {
+    const query = params ? '?' + new URLSearchParams(params as Record<string, string>).toString() : '';
+    return this.request<User[]>(`/users${query}`);
   }
 
   // Category endpoints
-  async getCategories(params?: any) {
-    const query = params ? '?' + new URLSearchParams(params).toString() : '';
-    return this.request(`/categories${query}`);
+  async getCategories(params?: ApiParams) {
+    const query = params ? '?' + new URLSearchParams(params as Record<string, string>).toString() : '';
+    return this.request<Category[]>(`/categories${query}`);
   }
 
   // Health check
