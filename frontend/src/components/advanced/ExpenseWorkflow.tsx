@@ -7,6 +7,7 @@ import { useAppContext } from "@/context/AppContext";
 import { CheckCircle, Clock, XCircle, User, DollarSign, FileText } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Expense } from "@/types";
+import { formatCurrency } from "@/utils/currency";
 
 interface ExpenseWorkflowProps {
   expense?: Expense;
@@ -45,7 +46,7 @@ export const ExpenseWorkflow = ({ expense }: ExpenseWorkflowProps) => {
       
       toast({
         title: "Expense Approved",
-        description: `Expense of $${updatedExpense.amount.toLocaleString()} has been approved.`,
+        description: `Expense of ${formatCurrency(updatedExpense.amount)} has been approved.`,
       });
     }
     
@@ -65,7 +66,7 @@ export const ExpenseWorkflow = ({ expense }: ExpenseWorkflowProps) => {
       
       toast({
         title: "Expense Rejected",
-        description: `Expense of $${updatedExpense.amount.toLocaleString()} has been rejected.`,
+        description: `Expense of ${formatCurrency(updatedExpense.amount)} has been rejected.`,
         variant: "destructive"
       });
     }
@@ -97,7 +98,7 @@ export const ExpenseWorkflow = ({ expense }: ExpenseWorkflowProps) => {
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-orange-500">
-                ${totalPendingAmount.toLocaleString()}
+                ${formatCurrency(totalPendingAmount)}
               </div>
               <div className="text-sm text-muted-foreground">Total Amount</div>
             </div>
@@ -120,7 +121,7 @@ export const ExpenseWorkflow = ({ expense }: ExpenseWorkflowProps) => {
                       </p>
                     </div>
                     <Badge variant="outline" className="text-xs">
-                      ${exp.amount.toLocaleString()}
+                      ${formatCurrency(exp.amount)}
                     </Badge>
                   </div>
                   

@@ -13,6 +13,7 @@ import {
   Activity,
   Target
 } from "lucide-react";
+import { formatCurrency } from "@/utils/currency";
 
 interface DashboardWidgetProps {
   type: 'budget-status' | 'expense-trends' | 'pending-approvals' | 'team-spending' | 'goals' | 'alerts';
@@ -38,9 +39,9 @@ export const DashboardWidget = ({ type, className }: DashboardWidgetProps) => {
         <CardContent>
           <div className="space-y-4">
             <div>
-              <div className="text-2xl font-bold">${totalSpent.toLocaleString()}</div>
+              <div className="text-2xl font-bold">{formatCurrency(totalSpent)}</div>
               <p className="text-xs text-muted-foreground">
-                of ${totalBudget.toLocaleString()} allocated
+                of {formatCurrency(totalBudget)} allocated
               </p>
             </div>
             
@@ -49,7 +50,7 @@ export const DashboardWidget = ({ type, className }: DashboardWidgetProps) => {
             <div className="flex justify-between text-xs">
               <span className="text-muted-foreground">{utilization.toFixed(1)}% used</span>
               <span className="text-muted-foreground">
-                ${(totalBudget - totalSpent).toLocaleString()} remaining
+                {formatCurrency(totalBudget - totalSpent)} remaining
               </span>
             </div>
             
@@ -108,7 +109,7 @@ export const DashboardWidget = ({ type, className }: DashboardWidgetProps) => {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <div className="text-2xl font-bold">${thisMonthExpenses.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{formatCurrency(thisMonthExpenses)}</div>
             <p className="text-xs text-muted-foreground">This month</p>
             
             <div className={`flex items-center gap-1 text-xs ${
@@ -124,7 +125,7 @@ export const DashboardWidget = ({ type, className }: DashboardWidgetProps) => {
             </div>
             
             <div className="text-xs text-muted-foreground">
-              Last month: ${lastMonthExpenses.toLocaleString()}
+              Last month: {formatCurrency(lastMonthExpenses)}
             </div>
           </div>
         </CardContent>
@@ -149,7 +150,7 @@ export const DashboardWidget = ({ type, className }: DashboardWidgetProps) => {
             
             {totalPendingAmount > 0 && (
               <div className="text-sm font-medium text-orange-600">
-                ${totalPendingAmount.toLocaleString()} total
+                {formatCurrency(totalPendingAmount)} total
               </div>
             )}
             
@@ -185,7 +186,7 @@ export const DashboardWidget = ({ type, className }: DashboardWidgetProps) => {
           <div className="space-y-3">
             {topDepartment && (
               <div>
-                <div className="text-2xl font-bold">${topDepartment.amount.toLocaleString()}</div>
+                <div className="text-2xl font-bold">{formatCurrency(topDepartment.amount)}</div>
                 <p className="text-xs text-muted-foreground">
                   {topDepartment.name} (top spender)
                 </p>
@@ -196,7 +197,7 @@ export const DashboardWidget = ({ type, className }: DashboardWidgetProps) => {
               {departmentSpending.slice(0, 3).map((dept, index) => (
                 <div key={dept.name} className="flex justify-between text-xs">
                   <span className="text-muted-foreground">{dept.name}</span>
-                  <span className="font-medium">${dept.amount.toLocaleString()}</span>
+                  <span className="font-medium">{formatCurrency(dept.amount)}</span>
                 </div>
               ))}
             </div>
@@ -222,7 +223,7 @@ export const DashboardWidget = ({ type, className }: DashboardWidgetProps) => {
         <CardContent>
           <div className="space-y-3">
             <div>
-              <div className="text-2xl font-bold">${currentSavings.toLocaleString()}</div>
+              <div className="text-2xl font-bold">{formatCurrency(currentSavings)}</div>
               <p className="text-xs text-muted-foreground">
                 of ${savingsGoal.toLocaleString()} goal
               </p>

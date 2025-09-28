@@ -12,9 +12,7 @@ async function testConnection() {
       dbName: 'budgetbuddy_erp',
     });
     
-    console.log('✅ MongoDB Connected Successfully!');
-    console.log('Database:', mongoose.connection.name);
-    console.log('Host:', mongoose.connection.host);
+
     
     // Test creating a simple collection
     const testSchema = new mongoose.Schema({ name: String });

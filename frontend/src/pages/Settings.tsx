@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { 
-  Bell, 
   Shield, 
   User, 
   Users,
@@ -237,7 +236,7 @@ const Settings = () => {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="currency">Default Currency</Label>
-              <Input id="currency" defaultValue="USD" placeholder="USD" />
+              <Input id="currency" defaultValue="INR" placeholder="INR" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="fiscal-year">Fiscal Year Start</Label>
@@ -247,7 +246,7 @@ const Settings = () => {
               <div>
                 <Label htmlFor="auto-approval">Auto-approve Small Expenses</Label>
                 <p className="text-sm text-muted-foreground">
-                  Automatically approve expenses under $100
+                  Automatically approve expenses under ₹10,000
                 </p>
               </div>
               <Switch id="auto-approval" />
@@ -307,20 +306,7 @@ const Settings = () => {
               </Button>
             </div>
             
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="flex items-center gap-3">
-                <Palette className="h-5 w-5 text-purple-600" />
-                <div>
-                  <Label>Slack Notifications</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Get alerts in Slack
-                  </p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm">
-                Connect
-              </Button>
-            </div>
+
           </CardContent>
         </Card>
 

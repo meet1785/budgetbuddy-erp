@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { useAppContext } from '@/context/AppContext';
+import { formatCurrency } from '@/utils/currency';
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#06B6D4'];
 
@@ -40,7 +41,7 @@ export const BudgetPieChart = () => {
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
             </Pie>
-            <Tooltip formatter={(value: number) => [`$${value.toLocaleString()}`, 'Amount']} />
+            <Tooltip formatter={(value: number) => [formatCurrency(value), 'Amount']} />
           </PieChart>
         </ResponsiveContainer>
       </CardContent>
@@ -73,7 +74,7 @@ export const BudgetBarChart = () => {
             <YAxis />
             <Tooltip 
               formatter={(value: number, name: string) => [
-                `$${value.toLocaleString()}`, 
+                formatCurrency(value), 
                 name.charAt(0).toUpperCase() + name.slice(1)
               ]}
             />

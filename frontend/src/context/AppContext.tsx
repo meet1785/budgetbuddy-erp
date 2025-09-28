@@ -662,7 +662,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     };
 
     restoreSession();
+  }, []); // Only run once on mount
 
+  useEffect(() => {
     const interval = window.setInterval(async () => {
       if (!hasValidToken()) {
         dispatch({ type: 'SET_ONLINE', payload: false });
@@ -678,7 +680,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }, 60000);
 
     return () => window.clearInterval(interval);
-  }, [refreshData]);
+  }, []); // Stable interval that doesn't depend on refreshData
 
   const login = async (email: string, password: string) => {
     dispatch({ type: 'SET_AUTH_LOADING', payload: true });

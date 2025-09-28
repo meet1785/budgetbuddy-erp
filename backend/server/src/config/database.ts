@@ -26,8 +26,7 @@ const connectDatabase = async (): Promise<void> => {
       socketTimeoutMS: 10000,
     });
 
-    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
-    console.log(`📊 Database: ${conn.connection.name}`);
+
     
     // Handle connection events
     mongoose.connection.on('error', (err) => {
@@ -58,8 +57,7 @@ const connectDatabase = async (): Promise<void> => {
           dbName: process.env.DB_NAME || 'budgetbuddy_erp',
         });
         
-        console.log(`✅ Local MongoDB Connected: ${conn.connection.host}`);
-        console.log(`📊 Database: ${conn.connection.name}`);
+
         return;
         
       } catch (localError: any) {

@@ -68,7 +68,6 @@ categorySchema.virtual('subcategories', {
 });
 
 // Indexes for better query performance
-categorySchema.index({ name: 1 }, { unique: true });
 categorySchema.index({ isActive: 1 });
 categorySchema.index({ parentId: 1 });
 

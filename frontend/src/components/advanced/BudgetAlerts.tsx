@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { useAppContext } from "@/context/AppContext";
 import { AlertTriangle, TrendingUp, DollarSign, Clock } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { formatCurrency } from "@/utils/currency";
 
 export const BudgetAlerts = () => {
   const { state } = useAppContext();
@@ -48,7 +49,7 @@ export const BudgetAlerts = () => {
         id: `over-${budget.id}`,
         type: 'critical' as const,
         title: `Budget Exceeded: ${budget.name}`,
-        description: `Over budget by $${overspend.toLocaleString()}`,
+        description: `Over budget by ${formatCurrency(overspend)}`,
         budget,
         action: 'review'
       });
@@ -90,7 +91,7 @@ export const BudgetAlerts = () => {
         id: `risk-${budget.id}`,
         type: 'info' as const,
         title: `Potential Overspend: ${budget.name}`,
-        description: `$${relatedPending.toLocaleString()} in pending expenses`,
+        description: `${formatCurrency(relatedPending)} in pending expenses`,
         budget,
         action: 'review'
       });
@@ -178,7 +179,7 @@ interface BudgetAlert {
           Budget Alerts
         </CardTitle>
         <CardDescription>
-          Critical budget notifications and recommendations
+          Critical budget alerts and recommendations
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -216,7 +217,7 @@ interface BudgetAlert {
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>Budget Progress</span>
                   <span>
-                    ${alert.budget.spent.toLocaleString()} / ${alert.budget.allocated.toLocaleString()}
+                    ${formatCurrency(alert.budget.spent)} / ${formatCurrency(alert.budget.allocated)}
                   </span>
                 </div>
                 <Progress 

@@ -89,28 +89,28 @@ const DashboardOverview = () => {
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="font-medium">Operations</span>
-                  <span className="text-muted-foreground">$45,200 / $50,000</span>
+                  <span className="text-muted-foreground">₹4,52,000 / ₹5,00,000</span>
                 </div>
                 <Progress value={90} className="h-2" />
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="font-medium">Marketing</span>
-                  <span className="text-muted-foreground">$12,500 / $20,000</span>
+                  <span className="text-muted-foreground">₹1,25,000 / ₹2,00,000</span>
                 </div>
                 <Progress value={62} className="h-2" />
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="font-medium">Development</span>
-                  <span className="text-muted-foreground">$28,300 / $35,000</span>
+                  <span className="text-muted-foreground">₹28,30,000 / ₹35,00,000</span>
                 </div>
                 <Progress value={81} className="h-2" />
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="font-medium">Administration</span>
-                  <span className="text-muted-foreground">$8,900 / $15,000</span>
+                  <span className="text-muted-foreground">₹8,90,000 / ₹15,00,000</span>
                 </div>
                 <Progress value={59} className="h-2" />
               </div>
@@ -144,7 +144,7 @@ const DashboardOverview = () => {
                 <div className="space-y-1">
                   <p className="font-medium text-sm">Marketing Under Budget</p>
                   <p className="text-xs text-muted-foreground">
-                    $7,500 remaining in marketing budget
+                    ₹7,50,000 remaining in marketing budget
                   </p>
                 </div>
               </div>

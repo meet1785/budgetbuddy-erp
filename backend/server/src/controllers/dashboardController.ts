@@ -110,7 +110,7 @@ export const getBudgetAlerts = async (req: Request, res: Response) => {
         return {
           type: 'info',
           title: `${budget.name} Under Budget`,
-          message: `$${budget.remaining.toLocaleString()} remaining in ${budget.name.toLowerCase()} budget`,
+          message: `₹${budget.remaining.toLocaleString('en-IN')} remaining in ${budget.name.toLowerCase()} budget`,
           budget: budget.name,
           utilization: Math.round(utilization)
         };
