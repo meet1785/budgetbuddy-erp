@@ -18,15 +18,20 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
       });
     }
 
-    const jwtSecret = process.env.JWT_SECRET || 'development-secret-key';
-    
-    const decoded = jwt.verify(token, jwtSecret) as { userId: string };
+
     const user = await User.findById(decoded.userId).select('+password');
     
     if (!user || !user.isActive) {
       return res.status(401).json({ 
         success: false, 
         message: 'Invalid token or user not found.' 
+      });
+    }
+
+    if (typeof decoded.tokenVersion === 'number' && decoded.tokenVersion !== user.tokenVersion) {
+      return res.status(401).json({
+        success: false,
+        message: 'Session expired. Please log in again.'
       });
     }
 

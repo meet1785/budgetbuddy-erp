@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,25 +17,55 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "@/hooks/use-toast";
+import { useLocation, useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/utils/currency";
 
 const Budgets = () => {
-  const { state, dispatch } = useAppContext();
+  const { state, deleteBudget } = useAppContext();
   const [showForm, setShowForm] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | undefined>();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const handleEdit = (budget: Budget) => {
     setEditingBudget(budget);
     setShowForm(true);
+    navigate({ pathname: location.pathname, search: "?modal=budget" }, { replace: true });
   };
 
-  const handleDelete = (budgetId: string) => {
-    dispatch({ type: 'DELETE_BUDGET', payload: budgetId });
-    toast({
-      title: "Budget deleted",
-      description: "The budget has been removed successfully.",
-    });
+  const handleDelete = async (budgetId: string) => {
+    try {
+      await deleteBudget(budgetId);
+      toast({
+        title: "Budget deleted",
+        description: "The budget has been removed successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Unable to delete budget",
+        description: error?.message || 'Something went wrong while deleting the budget.',
+        variant: "destructive",
+      });
+    }
   };
+
+  const closeModal = () => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('modal') === 'budget') {
+      params.delete('modal');
+      navigate({ pathname: location.pathname, search: params.toString() ? `?${params.toString()}` : '' }, { replace: true });
+    }
+    setShowForm(false);
+    setEditingBudget(undefined);
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const modal = params.get('modal');
+    if (modal === 'budget') {
+      setShowForm(true);
+    }
+  }, [location.search]);
 
   const getStatusBadge = (status: Budget['status']) => {
     switch (status) {
@@ -161,9 +191,22 @@ const Budgets = () => {
           </p>
         </div>
         
-        <Dialog open={showForm} onOpenChange={setShowForm}>
+        <Dialog open={showForm} onOpenChange={(open) => {
+          if (!open) {
+            closeModal();
+          } else {
+            setShowForm(true);
+          }
+        }}>
           <DialogTrigger asChild>
-            <Button className="gap-2 animate-bounce-gentle">
+            <Button
+              className="gap-2 animate-bounce-gentle"
+              onClick={() => {
+                setEditingBudget(undefined);
+                setShowForm(true);
+                navigate({ pathname: location.pathname, search: "?modal=budget" }, { replace: true });
+              }}
+            >
               <Plus className="h-4 w-4" />
               Create Budget
             </Button>
@@ -172,8 +215,7 @@ const Budgets = () => {
             <BudgetForm 
               budget={editingBudget}
               onSuccess={() => {
-                setShowForm(false);
-                setEditingBudget(undefined);
+                closeModal();
               }} 
             />
           </DialogContent>

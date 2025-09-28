@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { SortOrder } from 'mongoose';
+import mongoose from 'mongoose';
 import { Expense, Budget } from '../models';
 
 interface AuthRequest extends Request {
@@ -22,6 +23,41 @@ const parsePositiveInt = (value: unknown, fallback: number): number => {
   if (!normalized) return fallback;
   const parsed = parseInt(normalized, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const recalculateBudgetUsage = async (budgetId: mongoose.Types.ObjectId | string) => {
+  try {
+    const id = typeof budgetId === 'string' ? new mongoose.Types.ObjectId(budgetId) : budgetId;
+    const [result] = await Expense.aggregate([
+      { $match: { budgetId: id, status: 'approved' } },
+      {
+        $group: {
+          _id: '$budgetId',
+          totalSpent: { $sum: '$amount' }
+        }
+      }
+    ]);
+
+    const spent = result?.totalSpent ?? 0;
+    const budget = await Budget.findById(id);
+    if (!budget) return;
+
+    budget.spent = spent;
+    budget.remaining = budget.allocated - spent;
+
+    const utilization = (spent / (budget.allocated || 1)) * 100;
+    if (utilization >= 90) {
+      budget.status = 'over-budget';
+    } else if (utilization >= 75) {
+      budget.status = 'warning';
+    } else {
+      budget.status = 'on-track';
+    }
+
+    await budget.save();
+  } catch (error) {
+    console.error('Recalculate budget usage error:', error);
+  }
 };
 
 export const getExpenses = async (req: AuthRequest, res: Response) => {
@@ -102,10 +138,7 @@ export const createExpense = async (req: AuthRequest, res: Response) => {
 
     // Update budget spent amount if budgetId is provided
     if (expense.budgetId && expense.status === 'approved') {
-      await Budget.findByIdAndUpdate(
-        expense.budgetId,
-        { $inc: { spent: expense.amount } }
-      );
+      await recalculateBudgetUsage(expense.budgetId);
     }
 
     const populatedExpense = await Expense.findById(expense._id).populate('budgetId', 'name category');
@@ -140,21 +173,15 @@ export const updateExpense = async (req: AuthRequest, res: Response) => {
       { new: true, runValidators: true }
     ).populate('budgetId', 'name category');
 
-    // Update budget spent amount if status changed
-    if (oldExpense.budgetId && (oldExpense.status !== expense!.status)) {
-      if (oldExpense.status === 'approved' && expense!.status !== 'approved') {
-        // Subtract from budget if changed from approved to non-approved
-        await Budget.findByIdAndUpdate(
-          oldExpense.budgetId,
-          { $inc: { spent: -oldExpense.amount } }
-        );
-      } else if (oldExpense.status !== 'approved' && expense!.status === 'approved') {
-        // Add to budget if changed from non-approved to approved
-        await Budget.findByIdAndUpdate(
-          oldExpense.budgetId,
-          { $inc: { spent: expense!.amount } }
-        );
-      }
+    // Update budget spent amount when status or budget association changes
+    if (oldExpense.budgetId) {
+      await recalculateBudgetUsage(oldExpense.budgetId);
+    }
+
+    if (expense?.budgetId && (!oldExpense.budgetId || String(oldExpense.budgetId) !== String(expense.budgetId))) {
+      await recalculateBudgetUsage(expense.budgetId);
+    } else if (expense?.budgetId && oldExpense.status !== expense.status) {
+      await recalculateBudgetUsage(expense.budgetId);
     }
 
     res.json({
@@ -191,11 +218,8 @@ export const approveExpense = async (req: AuthRequest, res: Response) => {
     ).populate('budgetId', 'name category');
 
     // Update budget spent amount
-    if (expense.budgetId && expense.status !== 'approved') {
-      await Budget.findByIdAndUpdate(
-        expense.budgetId,
-        { $inc: { spent: expense.amount } }
-      );
+    if (expense.budgetId) {
+      await recalculateBudgetUsage(expense.budgetId);
     }
 
     res.json({
@@ -232,11 +256,8 @@ export const rejectExpense = async (req: AuthRequest, res: Response) => {
     ).populate('budgetId', 'name category');
 
     // Remove from budget spent amount if it was previously approved
-    if (expense.budgetId && expense.status === 'approved') {
-      await Budget.findByIdAndUpdate(
-        expense.budgetId,
-        { $inc: { spent: -expense.amount } }
-      );
+    if (expense.budgetId) {
+      await recalculateBudgetUsage(expense.budgetId);
     }
 
     res.json({

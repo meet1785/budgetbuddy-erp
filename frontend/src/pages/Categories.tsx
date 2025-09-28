@@ -21,7 +21,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 
 const Categories = () => {
-  const { state, dispatch } = useAppContext();
+  const { state, createCategory, updateCategory, deleteCategory } = useAppContext();
   const [showForm, setShowForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | undefined>();
   const [formData, setFormData] = useState({
@@ -48,10 +48,11 @@ const Categories = () => {
     setShowForm(true);
   };
 
-  const handleDelete = (categoryId: string) => {
+  const handleDelete = async (categoryId: string) => {
     // Check if category is being used in budgets or expenses
-    const usedInBudgets = state.budgets.some(b => b.category === state.categories.find(c => c.id === categoryId)?.name);
-    const usedInExpenses = state.expenses.some(e => e.category === state.categories.find(c => c.id === categoryId)?.name);
+    const category = state.categories.find(c => c.id === categoryId);
+    const usedInBudgets = state.budgets.some(b => b.category === category?.name);
+    const usedInExpenses = state.expenses.some(e => e.category === category?.name);
     
     if (usedInBudgets || usedInExpenses) {
       toast({
@@ -62,15 +63,22 @@ const Categories = () => {
       return;
     }
 
-    const categories = state.categories.filter(c => c.id !== categoryId);
-    dispatch({ type: 'SET_CATEGORIES', payload: categories });
-    toast({
-      title: "Category deleted",
-      description: "The category has been removed successfully.",
-    });
+    try {
+      await deleteCategory(categoryId);
+      toast({
+        title: "Category deleted",
+        description: "The category has been removed successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Unable to delete category",
+        description: error?.message || 'Something went wrong while deleting the category.',
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const category: Category = {
@@ -81,24 +89,41 @@ const Categories = () => {
       isActive: formData.isActive
     };
 
-    if (editingCategory) {
-      const categories = state.categories.map(c => c.id === category.id ? category : c);
-      dispatch({ type: 'SET_CATEGORIES', payload: categories });
+    try {
+      if (editingCategory) {
+        await updateCategory(editingCategory.id, {
+          name: category.name,
+          description: category.description,
+          color: category.color,
+          isActive: category.isActive,
+        });
+        toast({
+          title: "Category updated",
+          description: "The category has been updated successfully.",
+        });
+      } else {
+        await createCategory({
+          name: category.name,
+          description: category.description,
+          color: category.color,
+          isActive: category.isActive,
+        });
+        toast({
+          title: "Category created",
+          description: "The new category has been created successfully.",
+        });
+      }
+
+      setShowForm(false);
+      setEditingCategory(undefined);
+      setFormData({ name: '', description: '', color: '#3B82F6', isActive: true });
+    } catch (error: any) {
       toast({
-        title: "Category updated",
-        description: "The category has been updated successfully.",
-      });
-    } else {
-      dispatch({ type: 'ADD_CATEGORY', payload: category });
-      toast({
-        title: "Category created",
-        description: "The new category has been created successfully.",
+        title: "Unable to save category",
+        description: error?.message || 'Something went wrong while saving the category.',
+        variant: "destructive",
       });
     }
-
-    setShowForm(false);
-    setEditingCategory(undefined);
-    setFormData({ name: '', description: '', color: '#3B82F6', isActive: true });
   };
 
   const columns: ColumnDef<Category>[] = [

@@ -6,17 +6,13 @@ interface AuthRequest extends Request {
   user?: any;
 }
 
-const generateToken = (userId: string): string => {
-  // Use development fallback if JWT_SECRET is not set
-  const jwtSecret = process.env.JWT_SECRET || 'development-secret-key';
-  
-  const secret: Secret = jwtSecret;
+
   const options: SignOptions = {};
   const expiresInEnv = process.env.JWT_EXPIRES_IN;
 
   options.expiresIn = (expiresInEnv || '7d') as SignOptions['expiresIn'];
 
-  return jwt.sign({ userId }, secret, options);
+  return jwt.sign({ userId, tokenVersion }, secret, options);
 };
 
 export const register = async (req: Request, res: Response) => {
@@ -56,7 +52,7 @@ export const register = async (req: Request, res: Response) => {
       permissions
     });
 
-    const token = generateToken(user._id);
+  const token = generateToken(user._id, user.tokenVersion);
 
     res.status(201).json({
       success: true,
@@ -107,7 +103,7 @@ export const login = async (req: Request, res: Response) => {
     // Update last login
     await user.updateLastLogin();
 
-    const token = generateToken(user._id);
+  const token = generateToken(user._id, user.tokenVersion);
 
     res.json({
       success: true,
@@ -221,6 +217,8 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
     user.password = newPassword;
     await user.save();
 
+    await User.findByIdAndUpdate(req.user._id, { $inc: { tokenVersion: 1 } });
+
     res.json({
       success: true,
       message: 'Password changed successfully'
@@ -230,6 +228,30 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Error changing password'
+    });
+  }
+};
+
+export const logout = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user?._id) {
+      return res.status(400).json({
+        success: false,
+        message: 'User session not found'
+      });
+    }
+
+    await User.findByIdAndUpdate(req.user._id, { $inc: { tokenVersion: 1 } });
+
+    res.json({
+      success: true,
+      message: 'Logged out successfully'
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error during logout'
     });
   }
 };

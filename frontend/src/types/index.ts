@@ -48,6 +48,7 @@ export interface User {
   permissions: string[];
   createdAt: Date;
   lastLogin?: Date;
+  isActive: boolean;
 }
 
 export interface Report {

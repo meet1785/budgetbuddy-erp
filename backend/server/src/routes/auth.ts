@@ -1,6 +1,6 @@
 import express from 'express';
 import { body } from 'express-validator';
-import { register, login, getProfile, updateProfile, changePassword } from '../controllers/authController';
+import { register, login, getProfile, updateProfile, changePassword, logout } from '../controllers/authController';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validation';
 
@@ -37,5 +37,6 @@ router.post('/login', validate(loginValidation), login);
 router.get('/profile', authenticate, getProfile);
 router.patch('/profile', authenticate, validate(updateProfileValidation), updateProfile);
 router.patch('/change-password', authenticate, validate(changePasswordValidation), changePassword);
+router.post('/logout', authenticate, logout);
 
 export default router;

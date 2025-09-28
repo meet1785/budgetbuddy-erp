@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -5,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DataTable } from "@/components/data-table/DataTable";
 import { useAppContext } from "@/context/AppContext";
 import { User } from "@/types";
-import { Plus, MoreHorizontal, Edit, Trash2, Shield, Eye } from "lucide-react";
+import { Plus, MoreHorizontal, Edit, Shield, Eye, RotateCcw, Ban } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,9 +16,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { UserForm } from "@/components/forms/UserForm";
+import { toast } from "@/hooks/use-toast";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const Users = () => {
-  const { state } = useAppContext();
+  const { state, deactivateUser, reactivateUser } = useAppContext();
+  const [showForm, setShowForm] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | undefined>();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const getRoleBadge = (role: User['role']) => {
     switch (role) {
@@ -43,6 +52,55 @@ const Users = () => {
   const activeUsers = state.users.filter(user => 
     user.lastLogin && new Date(user.lastLogin) >= sevenDaysAgo
   ).length;
+
+  const closeModal = () => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('modal') === 'user') {
+      params.delete('modal');
+      navigate({ pathname: location.pathname, search: params.toString() ? `?${params.toString()}` : '' }, { replace: true });
+    }
+    setShowForm(false);
+    setEditingUser(undefined);
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('modal') === 'user') {
+      setShowForm(true);
+    }
+  }, [location.search]);
+
+  const handleDeactivate = async (user: User) => {
+    try {
+      await deactivateUser(user.id);
+      toast({
+        title: "User deactivated",
+        description: `${user.name} can no longer access the system.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Unable to deactivate user",
+        description: error?.message || 'Something went wrong while deactivating the user.',
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleReactivate = async (user: User) => {
+    try {
+      await reactivateUser(user.id);
+      toast({
+        title: "User reactivated",
+        description: `${user.name} has regained access to the system.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Unable to reactivate user",
+        description: error?.message || 'Something went wrong while reactivating the user.',
+        variant: "destructive",
+      });
+    }
+  };
 
   const columns: ColumnDef<User>[] = [
     {
@@ -70,6 +128,18 @@ const Users = () => {
       accessorKey: "role",
       header: "Role",
       cell: ({ row }) => getRoleBadge(row.getValue("role")),
+    },
+    {
+      accessorKey: "isActive",
+      header: "Status",
+      cell: ({ row }) => {
+        const isActive = row.getValue("isActive") as boolean;
+        return (
+          <Badge variant={isActive ? "outline" : "destructive"}>
+            {isActive ? "Active" : "Inactive"}
+          </Badge>
+        );
+      }
     },
     {
       accessorKey: "department",
@@ -144,10 +214,23 @@ const Users = () => {
                 <Shield className="mr-2 h-4 w-4" />
                 Manage Permissions
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-red-600 dark:text-red-400">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete User
-              </DropdownMenuItem>
+              {user.isActive ? (
+                <DropdownMenuItem
+                  className="text-red-600 dark:text-red-400"
+                  onClick={() => handleDeactivate(user)}
+                >
+                  <Ban className="mr-2 h-4 w-4" />
+                  Deactivate User
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem
+                  className="text-green-600 dark:text-green-400"
+                  onClick={() => handleReactivate(user)}
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Reactivate User
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         );
@@ -164,11 +247,39 @@ const Users = () => {
             Manage user accounts, roles, and permissions across your organization.
           </p>
         </div>
-        
-        <Button className="gap-2 animate-bounce-gentle">
-          <Plus className="h-4 w-4" />
-          Add User
-        </Button>
+
+        <Dialog
+          open={showForm}
+          onOpenChange={(open) => {
+            if (!open) {
+              closeModal();
+            } else {
+              setShowForm(true);
+            }
+          }}
+        >
+          <DialogTrigger asChild>
+            <Button
+              className="gap-2 animate-bounce-gentle"
+              onClick={() => {
+                setEditingUser(undefined);
+                setShowForm(true);
+                navigate({ pathname: location.pathname, search: "?modal=user" }, { replace: true });
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              Add User
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-3xl">
+            <UserForm
+              user={editingUser}
+              onSuccess={() => {
+                closeModal();
+              }}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Summary Cards */}

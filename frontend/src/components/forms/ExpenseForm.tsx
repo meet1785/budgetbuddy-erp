@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -57,7 +58,8 @@ interface ExpenseFormProps {
 }
 
 export function ExpenseForm({ expense, onSuccess }: ExpenseFormProps) {
-  const { state, dispatch } = useAppContext();
+  const { state, createExpense, updateExpense } = useAppContext();
+  const [submitting, setSubmitting] = useState(false);
   
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseFormSchema),
@@ -72,35 +74,46 @@ export function ExpenseForm({ expense, onSuccess }: ExpenseFormProps) {
     },
   });
 
-  function onSubmit(values: ExpenseFormValues) {
-    const newExpense: Expense = {
-      id: expense?.id || Date.now().toString(),
+  const onSubmit = async (values: ExpenseFormValues) => {
+    const tagsArray = values.tags ? values.tags.split(",").map(tag => tag.trim()).filter(Boolean) : [];
+    const payload = {
       description: values.description,
       amount: Number(values.amount),
       category: values.category,
       vendor: values.vendor,
       date: values.date,
       department: values.department,
-      tags: values.tags ? values.tags.split(",").map(tag => tag.trim()) : [],
-      status: expense?.status || 'pending',
+      tags: tagsArray,
+      status: expense?.status ?? 'pending',
     };
 
-    if (expense) {
-      dispatch({ type: 'UPDATE_EXPENSE', payload: newExpense });
-      toast({
-        title: "Expense updated",
-        description: "Your expense has been updated successfully.",
-      });
-    } else {
-      dispatch({ type: 'ADD_EXPENSE', payload: newExpense });
-      toast({
-        title: "Expense created",
-        description: "Your expense has been submitted for approval.",
-      });
-    }
+    setSubmitting(true);
+    try {
+      if (expense) {
+        await updateExpense(expense.id, payload);
+        toast({
+          title: "Expense updated",
+          description: "Your expense has been updated successfully.",
+        });
+      } else {
+        await createExpense(payload);
+        toast({
+          title: "Expense created",
+          description: "Your expense has been submitted for approval.",
+        });
+      }
 
-    onSuccess?.();
-  }
+      onSuccess?.();
+    } catch (error: any) {
+      toast({
+        title: "Unable to save expense",
+        description: error?.message || 'Something went wrong while saving the expense.',
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <Card className="animate-scale-in">
@@ -277,7 +290,7 @@ export function ExpenseForm({ expense, onSuccess }: ExpenseFormProps) {
             </div>
 
             <div className="flex gap-3">
-              <Button type="submit" className="flex-1">
+              <Button type="submit" className="flex-1" disabled={submitting}>
                 {expense ? 'Update Expense' : 'Submit Expense'}
               </Button>
               <Button type="button" variant="outline" onClick={onSuccess}>
