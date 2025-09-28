@@ -7,10 +7,8 @@ interface AuthRequest extends Request {
 }
 
 const generateToken = (userId: string): string => {
-  const jwtSecret = process.env.JWT_SECRET;
-  if (!jwtSecret) {
-    throw new Error('JWT_SECRET is not defined');
-  }
+  // Use development fallback if JWT_SECRET is not set
+  const jwtSecret = process.env.JWT_SECRET || 'development-secret-key';
   
   const secret: Secret = jwtSecret;
   const options: SignOptions = {};
