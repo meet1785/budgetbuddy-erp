@@ -6,16 +6,7 @@ interface AuthRequest extends Request {
   user?: any;
 }
 
-const resolveJwtSecret = (): Secret => {
-  const secret = process.env.JWT_SECRET || (process.env.NODE_ENV !== 'production' ? 'development-secret' : undefined);
-  if (!secret) {
-    throw new Error('JWT_SECRET is not defined');
-  }
-  return secret;
-};
 
-const generateToken = (userId: string, tokenVersion: number): string => {
-  const secret = resolveJwtSecret();
   const options: SignOptions = {};
   const expiresInEnv = process.env.JWT_EXPIRES_IN;
 

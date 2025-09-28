@@ -1,9 +1,6 @@
 import { User, Budget, Expense, Transaction, Category, DashboardMetrics } from '@/types';
 
-const envApiUrl = import.meta.env.VITE_API_URL?.trim();
-const API_BASE_URL =
-  (envApiUrl && envApiUrl.replace(/\/$/, '')) ||
-  (typeof window !== 'undefined' ? '/api' : 'http://localhost:3000/api');
+
 
 interface ApiError {
   field?: string;
