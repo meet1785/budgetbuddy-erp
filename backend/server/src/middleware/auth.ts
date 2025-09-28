@@ -18,15 +18,8 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
       });
     }
 
-    const jwtSecret = process.env.JWT_SECRET;
-    if (!jwtSecret) {
-      console.error('JWT_SECRET is not defined');
-      return res.status(500).json({ 
-        success: false, 
-        message: 'Server configuration error' 
-      });
-    }
-
+    const jwtSecret = process.env.JWT_SECRET || 'development-secret-key';
+    
     const decoded = jwt.verify(token, jwtSecret) as { userId: string };
     const user = await User.findById(decoded.userId).select('+password');
     
