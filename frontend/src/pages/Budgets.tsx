@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "@/hooks/use-toast";
+import { getErrorMessage } from "@/lib/utils";
 import { useLocation, useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/utils/currency";
 
@@ -40,10 +41,10 @@ const Budgets = () => {
         title: "Budget deleted",
         description: "The budget has been removed successfully.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Unable to delete budget",
-        description: error?.message || 'Something went wrong while deleting the budget.',
+        description: getErrorMessage(error, "Something went wrong while deleting the budget."),
         variant: "destructive",
       });
     }

@@ -2,12 +2,11 @@
 
 A full-stack finance management system that combines a modern React frontend with an Express + MongoDB backend. The project now ships with a dedicated `frontend/` and `backend/` separation and connects to the provided MongoDB Atlas cluster out of the box—no Docker required.
 
-![BudgetBuddy ERP Dashboard](https://github.com/user-attachments/assets/c8d497fe-451a-4993-b64b-8d40f1978fde)
-
 ## ✨ Highlights
 - **Rich ERP features:** budgets, expenses, transactions, reports, categories, and user management with role-based access.
 - **Production-ready backend:** Express.js (TypeScript), MongoDB Atlas, JWT auth, rate limiting, helmet, CORS, and comprehensive error handling.
 - **Modern frontend:** React 18 + Vite, Tailwind CSS with shadcn/ui, TanStack Query/Table, React Hook Form + Zod, and advanced dashboard widgets.
+- **🚀 Deployment Ready:** All components tested and verified, ready for production deployment.
 
 
 ## 🏗️ Architecture Overview
@@ -103,6 +102,8 @@ npm run build      # outputs to frontend/dist
 npm run preview    # optional static preview
 ```
 Deploy the built frontend however you prefer (static hosting, CDN, etc.) and run the backend on Node 18+ with the same `.env` configuration.
+
+**📋 For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md)**
 
 ## 📡 Core API Endpoints
 - **Auth:** `POST /api/auth/login`, `POST /api/auth/register`, `GET /api/auth/profile`, `PATCH /api/auth/profile`, `PATCH /api/auth/change-password`

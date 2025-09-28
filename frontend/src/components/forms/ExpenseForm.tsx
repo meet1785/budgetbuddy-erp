@@ -30,7 +30,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import { useAppContext } from "@/context/AppContext";
 import { Expense } from "@/types";
 import { toast } from "@/hooks/use-toast";
@@ -104,10 +104,10 @@ export function ExpenseForm({ expense, onSuccess }: ExpenseFormProps) {
       }
 
       onSuccess?.();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Unable to save expense",
-        description: error?.message || 'Something went wrong while saving the expense.',
+        description: getErrorMessage(error, "Something went wrong while saving the expense."),
         variant: "destructive",
       });
     } finally {

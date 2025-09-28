@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { UserForm } from "@/components/forms/UserForm";
 import { toast } from "@/hooks/use-toast";
 import { useLocation, useNavigate } from "react-router-dom";
+import { getErrorMessage } from "@/lib/utils";
 
 const Users = () => {
   const { state, deactivateUser, reactivateUser } = useAppContext();
@@ -77,10 +78,10 @@ const Users = () => {
         title: "User deactivated",
         description: `${user.name} can no longer access the system.`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Unable to deactivate user",
-        description: error?.message || 'Something went wrong while deactivating the user.',
+        description: getErrorMessage(error, "Something went wrong while deactivating the user."),
         variant: "destructive",
       });
     }
@@ -93,10 +94,10 @@ const Users = () => {
         title: "User reactivated",
         description: `${user.name} has regained access to the system.`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Unable to reactivate user",
-        description: error?.message || 'Something went wrong while reactivating the user.',
+        description: getErrorMessage(error, "Something went wrong while reactivating the user."),
         variant: "destructive",
       });
     }

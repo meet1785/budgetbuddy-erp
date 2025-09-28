@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAppContext } from "@/context/AppContext";
 import { toast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -73,10 +73,10 @@ const Login = () => {
         description: "You have signed in successfully.",
       });
       navigate("/", { replace: true });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Unable to sign in",
-        description: error?.message || "Please check your credentials and try again.",
+        description: getErrorMessage(error, "Please check your credentials and try again."),
         variant: "destructive",
       });
     } finally {

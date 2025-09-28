@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAppContext } from "@/context/AppContext";
 import { toast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 
 const registerSchema = z
   .object({
@@ -100,10 +100,10 @@ const Register = () => {
       });
 
       navigate("/", { replace: true });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Unable to register",
-        description: error?.message || "Please review your information and try again.",
+        description: getErrorMessage(error, "Please review your information and try again."),
         variant: "destructive",
       });
     } finally {

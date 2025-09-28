@@ -24,6 +24,7 @@ import { useAppContext } from "@/context/AppContext";
 import { Budget } from "@/types";
 import { toast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getErrorMessage } from "@/lib/utils";
 
 const budgetFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -80,10 +81,10 @@ export function BudgetForm({ budget, onSuccess }: BudgetFormProps) {
       }
 
       onSuccess?.();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Unable to save budget",
-        description: error?.message || 'Something went wrong while saving the budget.',
+        description: getErrorMessage(error, "Something went wrong while saving the budget."),
         variant: "destructive",
       });
     } finally {

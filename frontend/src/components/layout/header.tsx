@@ -22,6 +22,7 @@ import {
 import { useAppContext } from "@/context/AppContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { getErrorMessage } from "@/lib/utils";
 
 export function Header() {
   const { state, logout } = useAppContext();
@@ -36,10 +37,10 @@ export function Header() {
         description: "You have been signed out successfully.",
       });
       navigate("/");
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Logout failed",
-        description: error?.message || 'Something went wrong while logging out.',
+        description: getErrorMessage(error, "Something went wrong while logging out."),
         variant: "destructive",
       });
     }

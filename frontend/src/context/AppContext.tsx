@@ -8,6 +8,7 @@ import React, {
 } from 'react';
 import apiService from '@/services/api';
 import { Budget, Category, DashboardMetrics, Expense, Transaction, User } from '@/types';
+import { getErrorMessage } from '@/lib/utils';
 
 interface AppState {
   budgets: Budget[];
@@ -75,106 +76,211 @@ const ensureNumber = (value: unknown, fallback = 0): number => {
   return Number.isFinite(num) ? num : fallback;
 };
 
-const normalizeBudget = (data: any): Budget => {
-  const allocated = ensureNumber(data?.allocated);
-  const spent = ensureNumber(data?.spent);
-  const id = String(data?.id ?? data?._id ?? crypto.randomUUID());
+type UnknownRecord = Record<string, unknown>;
+
+const toRecord = (value: unknown): UnknownRecord =>
+  value !== null && typeof value === 'object' ? (value as UnknownRecord) : {};
+
+const toOptionalRecord = (value: unknown): UnknownRecord | undefined =>
+  value !== null && typeof value === 'object' ? (value as UnknownRecord) : undefined;
+
+const toStringValue = (value: unknown, fallback = ''): string =>
+  typeof value === 'string' ? value : fallback;
+
+const toOptionalString = (value: unknown): string | undefined => {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'number' || typeof value === 'bigint') {
+    return String(value);
+  }
+  return undefined;
+};
+
+const toBoolean = (value: unknown, fallback = false): boolean =>
+  typeof value === 'boolean' ? value : fallback;
+
+const toStringArray = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+
+const resolveId = (record: UnknownRecord): string => {
+  const idValue = record.id ?? record._id;
+  if (typeof idValue === 'string') {
+    return idValue;
+  }
+  if (typeof idValue === 'number' || typeof idValue === 'bigint') {
+    return String(idValue);
+  }
+  return crypto.randomUUID();
+};
+
+const asBudgetPeriod = (value: unknown): Budget['period'] => {
+  if (value === 'monthly' || value === 'quarterly' || value === 'yearly') {
+    return value;
+  }
+  return 'monthly';
+};
+
+const asBudgetStatus = (value: unknown): Budget['status'] => {
+  if (value === 'over-budget' || value === 'warning' || value === 'on-track') {
+    return value;
+  }
+  return 'on-track';
+};
+
+const asExpenseStatus = (value: unknown): Expense['status'] => {
+  if (value === 'approved' || value === 'rejected' || value === 'pending') {
+    return value;
+  }
+  return 'pending';
+};
+
+const asTransactionType = (value: unknown): Transaction['type'] => {
+  if (value === 'expense' || value === 'income') {
+    return value;
+  }
+  return 'expense';
+};
+
+const asTransactionStatus = (value: unknown): Transaction['status'] => {
+  if (value === 'completed' || value === 'pending' || value === 'failed') {
+    return value;
+  }
+  return 'pending';
+};
+
+const asUserRole = (value: unknown): User['role'] => {
+  if (value === 'admin' || value === 'manager' || value === 'user') {
+    return value;
+  }
+  return 'user';
+};
+
+const normalizeBudget = (data: unknown): Budget => {
+  const record = toRecord(data);
+  const allocated = ensureNumber(record.allocated);
+  const spent = ensureNumber(record.spent);
 
   return {
-    id,
-    name: data?.name ?? '',
-    category: data?.category ?? '',
+    id: resolveId(record),
+    name: toStringValue(record.name),
+    category: toStringValue(record.category),
     allocated,
     spent,
-    remaining: ensureNumber(data?.remaining, allocated - spent),
-    period: (data?.period ?? 'monthly') as Budget['period'],
-    status: (data?.status ?? 'on-track') as Budget['status'],
-    createdAt: toDate(data?.createdAt),
-    updatedAt: toDate(data?.updatedAt)
+    remaining: ensureNumber(record.remaining, allocated - spent),
+    period: asBudgetPeriod(record.period),
+    status: asBudgetStatus(record.status),
+    createdAt: toDate(record.createdAt),
+    updatedAt: toDate(record.updatedAt)
   };
 };
 
-const normalizeBudgets = (items: any[] | undefined): Budget[] =>
+const normalizeBudgets = (items: unknown[] | undefined): Budget[] =>
   Array.isArray(items) ? items.map(normalizeBudget) : [];
 
-const normalizeExpense = (data: any): Expense => ({
-  id: String(data?.id ?? data?._id ?? crypto.randomUUID()),
-  description: data?.description ?? '',
-  amount: ensureNumber(data?.amount),
-  category: data?.category ?? '',
-  budgetId: data?.budgetId ?? data?.budget?._id ?? undefined,
-  date: toDate(data?.date),
-  vendor: data?.vendor ?? '',
-  receiptUrl: data?.receiptUrl ?? undefined,
-  status: (data?.status ?? 'pending') as Expense['status'],
-  approvedBy: data?.approvedBy ?? undefined,
-  tags: Array.isArray(data?.tags) ? data.tags : [],
-  department: data?.department ?? ''
-});
+const normalizeExpense = (data: unknown): Expense => {
+  const record = toRecord(data);
+  const budgetRecord = toOptionalRecord(record.budget);
 
-const normalizeExpenses = (items: any[] | undefined): Expense[] =>
+  return {
+    id: resolveId(record),
+    description: toStringValue(record.description),
+    amount: ensureNumber(record.amount),
+    category: toStringValue(record.category),
+  budgetId: toOptionalString(record.budgetId ?? budgetRecord?._id),
+    date: toDate(record.date),
+    vendor: toStringValue(record.vendor),
+  receiptUrl: toOptionalString(record.receiptUrl),
+  status: asExpenseStatus(record.status),
+  approvedBy: toOptionalString(record.approvedBy),
+    tags: toStringArray(record.tags),
+    department: toStringValue(record.department)
+  };
+};
+
+const normalizeExpenses = (items: unknown[] | undefined): Expense[] =>
   Array.isArray(items) ? items.map(normalizeExpense) : [];
 
-const normalizeTransaction = (data: any): Transaction => ({
-  id: String(data?.id ?? data?._id ?? crypto.randomUUID()),
-  type: (data?.type ?? 'expense') as Transaction['type'],
-  amount: ensureNumber(data?.amount),
-  description: data?.description ?? '',
-  category: data?.category ?? '',
-  date: toDate(data?.date),
-  account: data?.account ?? '',
-  reference: data?.reference ?? undefined,
-  status: (data?.status ?? 'pending') as Transaction['status']
-});
+const normalizeTransaction = (data: unknown): Transaction => {
+  const record = toRecord(data);
 
-const normalizeTransactions = (items: any[] | undefined): Transaction[] =>
+  return {
+    id: resolveId(record),
+    type: asTransactionType(record.type),
+    amount: ensureNumber(record.amount),
+    description: toStringValue(record.description),
+    category: toStringValue(record.category),
+    date: toDate(record.date),
+    account: toStringValue(record.account),
+    reference: toStringValue(record.reference, undefined),
+    status: asTransactionStatus(record.status)
+  };
+};
+
+const normalizeTransactions = (items: unknown[] | undefined): Transaction[] =>
   Array.isArray(items) ? items.map(normalizeTransaction) : [];
 
-const normalizeUser = (data: any): User => ({
-  id: String(data?.id ?? data?._id ?? crypto.randomUUID()),
-  name: data?.name ?? '',
-  email: data?.email ?? '',
-  role: (data?.role ?? 'user') as User['role'],
-  department: data?.department ?? '',
-  avatar: data?.avatar ?? undefined,
-  permissions: Array.isArray(data?.permissions) ? data.permissions : [],
-  createdAt: toDate(data?.createdAt),
-  lastLogin: data?.lastLogin ? toDate(data?.lastLogin) : undefined,
-  isActive: data?.isActive ?? true
-});
+const normalizeUser = (data: unknown): User => {
+  const record = toRecord(data);
 
-const normalizeUsers = (items: any[] | undefined): User[] =>
+  return {
+    id: resolveId(record),
+    name: toStringValue(record.name),
+    email: toStringValue(record.email),
+    role: asUserRole(record.role),
+    department: toStringValue(record.department),
+  avatar: toOptionalString(record.avatar),
+    permissions: toStringArray(record.permissions),
+    createdAt: toDate(record.createdAt),
+    lastLogin: record.lastLogin ? toDate(record.lastLogin) : undefined,
+    isActive: toBoolean(record.isActive, true)
+  };
+};
+
+const normalizeUsers = (items: unknown[] | undefined): User[] =>
   Array.isArray(items) ? items.map(normalizeUser) : [];
 
-const normalizeCategory = (data: any): Category => ({
-  id: String(data?.id ?? data?._id ?? crypto.randomUUID()),
-  name: data?.name ?? '',
-  description: data?.description ?? undefined,
-  budget: data?.budget !== undefined ? ensureNumber(data?.budget) : undefined,
-  color: data?.color ?? '#3B82F6',
-  parentId: data?.parentId ?? undefined,
-  isActive: data?.isActive ?? true
-});
+const normalizeCategory = (data: unknown): Category => {
+  const record = toRecord(data);
 
-const normalizeCategories = (items: any[] | undefined): Category[] =>
+  return {
+    id: resolveId(record),
+    name: toStringValue(record.name),
+  description: toOptionalString(record.description),
+    budget: record.budget !== undefined ? ensureNumber(record.budget) : undefined,
+    color: toStringValue(record.color, '#3B82F6'),
+  parentId: toOptionalString(record.parentId),
+    isActive: toBoolean(record.isActive, true)
+  };
+};
+
+const normalizeCategories = (items: unknown[] | undefined): Category[] =>
   Array.isArray(items) ? items.map(normalizeCategory) : [];
 
-const normalizeMetrics = (data: any | undefined): DashboardMetrics => ({
-  totalBudget: ensureNumber(data?.totalBudget),
-  totalExpenses: ensureNumber(data?.totalExpenses),
-  remainingBudget: ensureNumber(data?.remainingBudget),
-  savingsGoal: ensureNumber(data?.savingsGoal),
-  monthlyBurnRate: ensureNumber(data?.monthlyBurnRate),
-  budgetUtilization: ensureNumber(data?.budgetUtilization),
-  expenseGrowth: ensureNumber(data?.expenseGrowth),
-  categoryBreakdown: Array.isArray(data?.categoryBreakdown)
-    ? data.categoryBreakdown.map((item: any) => ({
-        category: item?.category ?? 'Unknown',
-        amount: ensureNumber(item?.amount),
-        percentage: ensureNumber(item?.percentage)
-      }))
-    : []
-});
+const normalizeMetrics = (data: unknown): DashboardMetrics => {
+  const record = toRecord(data);
+  const breakdown = Array.isArray(record.categoryBreakdown)
+    ? record.categoryBreakdown.map((item: unknown) => {
+        const itemRecord = toRecord(item);
+        return {
+          category: toStringValue(itemRecord.category, 'Unknown'),
+          amount: ensureNumber(itemRecord.amount),
+          percentage: ensureNumber(itemRecord.percentage)
+        };
+      })
+    : [];
+
+  return {
+    totalBudget: ensureNumber(record.totalBudget),
+    totalExpenses: ensureNumber(record.totalExpenses),
+    remainingBudget: ensureNumber(record.remainingBudget),
+    savingsGoal: ensureNumber(record.savingsGoal),
+    monthlyBurnRate: ensureNumber(record.monthlyBurnRate),
+    budgetUtilization: ensureNumber(record.budgetUtilization),
+    expenseGrowth: ensureNumber(record.expenseGrowth),
+    categoryBreakdown: breakdown
+  };
+};
 
 const calculateMetrics = (state: AppState): DashboardMetrics => {
   const totalBudget = state.budgets.reduce((sum, budget) => sum + budget.allocated, 0);
@@ -455,7 +561,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
       let latestBudgets = state.budgets;
       if (budgetsResult.status === 'fulfilled' && budgetsResult.value.success) {
-        const normalized = normalizeBudgets(budgetsResult.value.data as any[] | undefined);
+  const normalized = normalizeBudgets(budgetsResult.value.data as unknown[] | undefined);
         latestBudgets = normalized;
         dispatch({ type: 'SET_BUDGETS', payload: normalized });
       } else {
@@ -464,7 +570,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
       let latestExpenses = state.expenses;
       if (expensesResult.status === 'fulfilled' && expensesResult.value.success) {
-        const normalized = normalizeExpenses(expensesResult.value.data as any[] | undefined);
+  const normalized = normalizeExpenses(expensesResult.value.data as unknown[] | undefined);
         latestExpenses = normalized;
         dispatch({ type: 'SET_EXPENSES', payload: normalized });
       } else {
@@ -474,21 +580,21 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       if (transactionsResult.status === 'fulfilled' && transactionsResult.value.success) {
         dispatch({
           type: 'SET_TRANSACTIONS',
-          payload: normalizeTransactions(transactionsResult.value.data as any[] | undefined)
+          payload: normalizeTransactions(transactionsResult.value.data as unknown[] | undefined)
         });
       } else {
         failedResources.push('transactions');
       }
 
       if (usersResult.status === 'fulfilled' && usersResult.value.success) {
-        dispatch({ type: 'SET_USERS', payload: normalizeUsers(usersResult.value.data as any[] | undefined) });
+  dispatch({ type: 'SET_USERS', payload: normalizeUsers(usersResult.value.data as unknown[] | undefined) });
       } else {
         failedResources.push('users');
       }
 
       let latestCategories = state.categories;
       if (categoriesResult.status === 'fulfilled' && categoriesResult.value.success) {
-        const normalized = normalizeCategories(categoriesResult.value.data as any[] | undefined);
+  const normalized = normalizeCategories(categoriesResult.value.data as unknown[] | undefined);
         latestCategories = normalized;
         dispatch({ type: 'SET_CATEGORIES', payload: normalized });
       } else {
@@ -588,10 +694,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       dispatch({ type: 'SET_CURRENT_USER', payload: user });
       dispatch({ type: 'SET_ONLINE', payload: true });
       await refreshData({ silent: true });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, 'Unable to login');
       console.error('Login error:', error);
-      dispatch({ type: 'SET_ERROR', payload: error.message || 'Unable to login' });
-      throw error;
+      dispatch({ type: 'SET_ERROR', payload: message });
+      throw error instanceof Error ? error : new Error(message);
     } finally {
       dispatch({ type: 'SET_AUTH_LOADING', payload: false });
     }
@@ -631,9 +738,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       dispatch({ type: 'SET_ONLINE', payload: true });
       await refreshData({ silent: true });
       return user;
-    } catch (error: any) {
-      dispatch({ type: 'SET_ERROR', payload: error.message || 'Registration failed' });
-      throw error;
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, 'Registration failed');
+      dispatch({ type: 'SET_ERROR', payload: message });
+      throw error instanceof Error ? error : new Error(message);
     }
   };
 

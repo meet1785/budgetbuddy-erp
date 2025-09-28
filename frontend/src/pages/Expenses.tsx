@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
+import { getErrorMessage } from "@/lib/utils";
 import { format } from "date-fns";
 import { formatCurrency } from "@/utils/currency";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -40,10 +41,10 @@ const Expenses = () => {
         title: "Expense deleted",
         description: "The expense has been removed successfully.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Unable to delete expense",
-        description: error?.message || 'Something went wrong while deleting the expense.',
+        description: getErrorMessage(error, "Something went wrong while deleting the expense."),
         variant: "destructive",
       });
     }
@@ -56,10 +57,10 @@ const Expenses = () => {
         title: "Expense approved",
         description: "The expense has been approved successfully.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Unable to approve expense",
-        description: error?.message || 'Something went wrong while approving the expense.',
+        description: getErrorMessage(error, "Something went wrong while approving the expense."),
         variant: "destructive",
       });
     }
@@ -73,10 +74,10 @@ const Expenses = () => {
         description: "The expense has been rejected.",
         variant: "destructive"
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Unable to reject expense",
-        description: error?.message || 'Something went wrong while rejecting the expense.',
+        description: getErrorMessage(error, "Something went wrong while rejecting the expense."),
         variant: "destructive",
       });
     }

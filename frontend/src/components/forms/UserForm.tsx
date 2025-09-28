@@ -26,6 +26,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useAppContext } from "@/context/AppContext";
 import { User } from "@/types";
 import { toast } from "@/hooks/use-toast";
+import { getErrorMessage } from "@/lib/utils";
 
 const userFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -82,7 +83,7 @@ export function UserForm({ user, onSuccess }: UserFormProps) {
       name: values.name,
       email: values.email,
       department: values.department,
-      role: values.role as User["role"],
+  role: values.role,
       permissions,
       avatar: values.avatar ? values.avatar : undefined,
     };
@@ -111,10 +112,10 @@ export function UserForm({ user, onSuccess }: UserFormProps) {
       }
 
       onSuccess?.();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Unable to save user",
-        description: error?.message || "Something went wrong while saving the user.",
+        description: getErrorMessage(error, "Something went wrong while saving the user."),
         variant: "destructive",
       });
     } finally {

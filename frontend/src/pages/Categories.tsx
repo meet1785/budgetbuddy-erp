@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
+import { getErrorMessage } from "@/lib/utils";
 
 const Categories = () => {
   const { state, createCategory, updateCategory, deleteCategory } = useAppContext();
@@ -69,10 +70,10 @@ const Categories = () => {
         title: "Category deleted",
         description: "The category has been removed successfully.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Unable to delete category",
-        description: error?.message || 'Something went wrong while deleting the category.',
+        description: getErrorMessage(error, "Something went wrong while deleting the category."),
         variant: "destructive",
       });
     }
@@ -117,10 +118,10 @@ const Categories = () => {
       setShowForm(false);
       setEditingCategory(undefined);
       setFormData({ name: '', description: '', color: '#3B82F6', isActive: true });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Unable to save category",
-        description: error?.message || 'Something went wrong while saving the category.',
+        description: getErrorMessage(error, "Something went wrong while saving the category."),
         variant: "destructive",
       });
     }
