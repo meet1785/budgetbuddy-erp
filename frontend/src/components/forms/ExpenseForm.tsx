@@ -42,6 +42,7 @@ const expenseFormSchema = z.object({
     message: "Amount must be a positive number",
   }),
   category: z.string().min(1, "Please select a category"),
+  budgetId: z.string().optional(),
   vendor: z.string().min(1, "Vendor is required"),
   date: z.date({
     required_error: "A date is required.",
@@ -67,6 +68,7 @@ export function ExpenseForm({ expense, onSuccess }: ExpenseFormProps) {
       description: expense?.description || "",
       amount: expense?.amount?.toString() || "",
       category: expense?.category || "",
+      budgetId: expense?.budgetId || "",
       vendor: expense?.vendor || "",
       date: expense?.date || new Date(),
       department: expense?.department || "",
@@ -80,6 +82,7 @@ export function ExpenseForm({ expense, onSuccess }: ExpenseFormProps) {
       description: values.description,
       amount: Number(values.amount),
       category: values.category,
+      budgetId: values.budgetId && values.budgetId !== 'none' && values.budgetId.length > 0 ? values.budgetId : undefined,
       vendor: values.vendor,
       date: values.date,
       department: values.department,
@@ -158,7 +161,7 @@ export function ExpenseForm({ expense, onSuccess }: ExpenseFormProps) {
                       <Input type="number" step="0.01" placeholder="0.00" {...field} />
                     </FormControl>
                     <FormDescription>
-                      Amount in USD
+                      Amount in Indian Rupees (₹)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -178,13 +181,77 @@ export function ExpenseForm({ expense, onSuccess }: ExpenseFormProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {state.categories.map((category) => (
-                          <SelectItem key={category.id} value={category.name}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
+                        {state.categories.length > 0 ? (
+                          state.categories.map((category) => (
+                            <SelectItem key={category.id} value={category.name}>
+                              {category.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          // Fallback categories when none are loaded from backend
+                          <>
+                            <SelectItem value="Office Supplies">Office Supplies</SelectItem>
+                            <SelectItem value="Travel">Travel</SelectItem>
+                            <SelectItem value="Meals & Entertainment">Meals & Entertainment</SelectItem>
+                            <SelectItem value="Technology">Technology</SelectItem>
+                            <SelectItem value="Marketing">Marketing</SelectItem>
+                            <SelectItem value="Professional Services">Professional Services</SelectItem>
+                            <SelectItem value="Utilities">Utilities</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="budgetId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Budget (Optional)</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Link to budget (optional)" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">No Budget Link</SelectItem>
+                        {state.budgets
+                          .filter(budget => {
+                            const selectedCategory = form.getValues('category');
+                            return budget.id && budget.id.trim() !== '' && (!selectedCategory || budget.category === selectedCategory);
+                          })
+                          .map((budget) => {
+                            const approvedExpenses = state.expenses.filter(expense => expense.status === 'approved');
+                            const budgetExpenses = approvedExpenses.filter(expense => 
+                              expense.budgetId === budget.id || 
+                              (expense.category === budget.category && !expense.budgetId)
+                            );
+                            const spent = budgetExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+                            const remaining = budget.allocated - spent;
+                            const utilization = budget.allocated > 0 ? (spent / budget.allocated) * 100 : 0;
+                            
+                            return (
+                              <SelectItem key={budget.id} value={budget.id}>
+                                <div className="flex flex-col">
+                                  <span>{budget.name}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    ₹{remaining.toLocaleString('en-IN')} remaining ({utilization.toFixed(1)}% used)
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            );
+                          })}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Link this expense to a specific budget for better tracking
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -290,8 +357,12 @@ export function ExpenseForm({ expense, onSuccess }: ExpenseFormProps) {
             </div>
 
             <div className="flex gap-3">
-              <Button type="submit" className="flex-1" disabled={submitting}>
-                {expense ? 'Update Expense' : 'Submit Expense'}
+              <Button 
+                type="submit" 
+                className="flex-1" 
+                disabled={submitting}
+              >
+                {submitting ? 'Submitting...' : (expense ? 'Update Expense' : 'Submit Expense')}
               </Button>
               <Button type="button" variant="outline" onClick={onSuccess}>
                 Cancel

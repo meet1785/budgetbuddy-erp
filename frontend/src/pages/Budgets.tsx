@@ -20,6 +20,8 @@ import { toast } from "@/hooks/use-toast";
 import { getErrorMessage } from "@/lib/utils";
 import { useLocation, useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/utils/currency";
+import { getHighlightClasses, scrollToHighlighted, getHighlightId } from "@/utils/search";
+import { BudgetHealth, BudgetStatusBadge } from "@/components/budget/BudgetHealth";
 
 const Budgets = () => {
   const { state, deleteBudget } = useAppContext();
@@ -66,6 +68,9 @@ const Budgets = () => {
     if (modal === 'budget') {
       setShowForm(true);
     }
+    
+    // Scroll to highlighted element if coming from search
+    scrollToHighlighted();
   }, [location.search]);
 
   const getStatusBadge = (status: Budget['status']) => {
@@ -136,8 +141,10 @@ const Budgets = () => {
     },
     {
       accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => getStatusBadge(row.getValue("status")),
+      header: "Health",
+      cell: ({ row }) => (
+        <BudgetStatusBadge budget={row.original} />
+      ),
     },
     {
       accessorKey: "period",
@@ -228,6 +235,8 @@ const Budgets = () => {
         data={state.budgets}
         searchKey="name"
         searchPlaceholder="Search budgets..."
+        getRowId={(budget) => budget.id}
+        getRowClassName={(budget) => getHighlightClasses(budget.id)}
       />
     </div>
   );

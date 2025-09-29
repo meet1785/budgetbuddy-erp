@@ -282,31 +282,79 @@ const normalizeMetrics = (data: unknown): DashboardMetrics => {
   };
 };
 
+const calculateBudgetSpending = (budgets: Budget[], expenses: Expense[]): Budget[] => {
+  const approvedExpenses = expenses.filter(expense => expense.status === 'approved');
+  
+  return budgets.map(budget => {
+    // Calculate spent amount from linked expenses
+    const budgetExpenses = approvedExpenses.filter(expense => 
+      expense.budgetId === budget.id || 
+      (expense.category === budget.category && !expense.budgetId)
+    );
+    
+    const spent = budgetExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const remaining = Math.max(0, budget.allocated - spent);
+    
+    // Determine status based on spending
+    let status: Budget['status'] = 'on-track';
+    const utilization = budget.allocated > 0 ? (spent / budget.allocated) * 100 : 0;
+    
+    if (spent > budget.allocated) {
+      status = 'over-budget';
+    } else if (utilization >= 80) {
+      status = 'warning';
+    }
+    
+    return {
+      ...budget,
+      spent,
+      remaining,
+      status
+    };
+  });
+};
+
 const calculateMetrics = (state: AppState): DashboardMetrics => {
-  const totalBudget = state.budgets.reduce((sum, budget) => sum + budget.allocated, 0);
-  const approvedExpenses = state.expenses.filter(expense => expense.status === 'approved');
-  const totalExpenses = approvedExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const updatedBudgets = calculateBudgetSpending(state.budgets, state.expenses);
+  const totalBudget = updatedBudgets.reduce((sum, budget) => sum + budget.allocated, 0);
+  const totalExpenses = updatedBudgets.reduce((sum, budget) => sum + budget.spent, 0);
   const remainingBudget = totalBudget - totalExpenses;
   const budgetUtilization = totalBudget > 0 ? (totalExpenses / totalBudget) * 100 : 0;
 
+  // Category breakdown based on actual spending
   const categoryBreakdown = state.categories.map(category => {
-    const categoryExpenses = approvedExpenses
-      .filter(expense => expense.category === category.name)
-      .reduce((sum, expense) => sum + expense.amount, 0);
-    const percentage = totalExpenses > 0 ? (categoryExpenses / totalExpenses) * 100 : 0;
+    const categoryBudgets = updatedBudgets.filter(budget => budget.category === category.name);
+    const categorySpent = categoryBudgets.reduce((sum, budget) => sum + budget.spent, 0);
+    const percentage = totalExpenses > 0 ? (categorySpent / totalExpenses) * 100 : 0;
 
     return {
       category: category.name,
-      amount: categoryExpenses,
+      amount: categorySpent,
       percentage: Math.round(percentage * 10) / 10
     };
   }).filter(item => item.amount > 0);
 
+  // Calculate monthly burn rate
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const approvedExpenses = state.expenses.filter(expense => expense.status === 'approved');
   const monthlyBurnRate = approvedExpenses
     .filter(expense => new Date(expense.date) >= thirtyDaysAgo)
     .reduce((sum, expense) => sum + expense.amount, 0);
+
+  // Calculate expense growth (compare last 30 days vs previous 30 days)
+  const sixtyDaysAgo = new Date();
+  sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+  const previousMonthExpenses = approvedExpenses
+    .filter(expense => {
+      const expenseDate = new Date(expense.date);
+      return expenseDate >= sixtyDaysAgo && expenseDate < thirtyDaysAgo;
+    })
+    .reduce((sum, expense) => sum + expense.amount, 0);
+    
+  const expenseGrowth = previousMonthExpenses > 0 
+    ? ((monthlyBurnRate - previousMonthExpenses) / previousMonthExpenses) * 100 
+    : 0;
 
   return {
     totalBudget,
@@ -315,7 +363,7 @@ const calculateMetrics = (state: AppState): DashboardMetrics => {
     savingsGoal: remainingBudget,
     monthlyBurnRate,
     budgetUtilization,
-    expenseGrowth: 0,
+    expenseGrowth,
     categoryBreakdown
   };
 };
@@ -335,42 +383,62 @@ const loadInitialState = (): AppState => ({
   error: null
 });
 
+const getDynamicBudgets = (state: AppState): Budget[] => {
+  return calculateBudgetSpending(state.budgets, state.expenses);
+};
+
 const initialState: AppState = loadInitialState();
 
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
-    case 'SET_BUDGETS':
-      return { ...state, budgets: action.payload };
-    case 'ADD_BUDGET':
-      return { ...state, budgets: [...state.budgets, action.payload] };
-    case 'UPDATE_BUDGET':
-      return {
+    case 'SET_BUDGETS': {
+      const newState = { ...state, budgets: action.payload };
+      return { ...newState, metrics: calculateMetrics(newState) };
+    }
+    case 'ADD_BUDGET': {
+      const newState = { ...state, budgets: [...state.budgets, action.payload] };
+      return { ...newState, metrics: calculateMetrics(newState) };
+    }
+    case 'UPDATE_BUDGET': {
+      const newState = {
         ...state,
         budgets: state.budgets.map(budget =>
           budget.id === action.payload.id ? action.payload : budget
         )
       };
-    case 'DELETE_BUDGET':
-      return {
+      return { ...newState, metrics: calculateMetrics(newState) };
+    }
+    case 'DELETE_BUDGET': {
+      const newState = {
         ...state,
         budgets: state.budgets.filter(budget => budget.id !== action.payload)
       };
-    case 'SET_EXPENSES':
-      return { ...state, expenses: action.payload };
-    case 'ADD_EXPENSE':
-      return { ...state, expenses: [...state.expenses, action.payload] };
-    case 'UPDATE_EXPENSE':
-      return {
+      return { ...newState, metrics: calculateMetrics(newState) };
+    }
+    case 'SET_EXPENSES': {
+      const newState = { ...state, expenses: action.payload };
+      return { ...newState, metrics: calculateMetrics(newState) };
+    }
+    case 'ADD_EXPENSE': {
+      const newState = { ...state, expenses: [...state.expenses, action.payload] };
+      return { ...newState, metrics: calculateMetrics(newState) };
+    }
+    case 'UPDATE_EXPENSE': {
+      const newState = {
         ...state,
         expenses: state.expenses.map(expense =>
           expense.id === action.payload.id ? action.payload : expense
         )
       };
-    case 'DELETE_EXPENSE':
-      return {
+      return { ...newState, metrics: calculateMetrics(newState) };
+    }
+    case 'DELETE_EXPENSE': {
+      const newState = {
         ...state,
         expenses: state.expenses.filter(expense => expense.id !== action.payload)
       };
+      return { ...newState, metrics: calculateMetrics(newState) };
+    }
     case 'SET_TRANSACTIONS':
       return { ...state, transactions: action.payload };
     case 'ADD_TRANSACTION':

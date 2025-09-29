@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/data-table/DataTable";
 import { ExpenseForm } from "@/components/forms/ExpenseForm";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useAppContext } from "@/context/AppContext";
 import { Expense } from "@/types";
 import { Plus, MoreHorizontal, Edit, Trash2, Check, X, Eye } from "lucide-react";
@@ -23,10 +23,11 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 const Expenses = () => {
   const { state, deleteExpense, approveExpense, rejectExpense } = useAppContext();
-  const [showForm, setShowForm] = useState(false);
-  const [editingExpense, setEditingExpense] = useState<Expense | undefined>();
   const navigate = useNavigate();
   const location = useLocation();
+  
+  const [showForm, setShowForm] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | undefined>();
 
   const handleEdit = (expense: Expense) => {
     setEditingExpense(expense);
@@ -95,7 +96,8 @@ const Expenses = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    if (params.get('modal') === 'expense') {
+    const modal = params.get('modal');
+    if (modal === 'expense') {
       setShowForm(true);
     }
   }, [location.search]);
@@ -251,7 +253,13 @@ const Expenses = () => {
               Add Expense
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-3xl">
+          <DialogContent className="max-w-2xl">
+            <DialogTitle className="sr-only">
+              {editingExpense ? 'Edit Expense' : 'Add New Expense'}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              {editingExpense ? 'Update your expense details' : 'Create a new business expense record'}
+            </DialogDescription>
             <ExpenseForm 
               expense={editingExpense}
               onSuccess={() => {

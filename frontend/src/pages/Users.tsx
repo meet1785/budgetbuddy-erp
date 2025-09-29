@@ -16,8 +16,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { UserForm } from "@/components/forms/UserForm";
+import { UserProfileDialog } from "@/components/dialogs/UserProfileDialog";
+import { PermissionsDialog } from "@/components/dialogs/PermissionsDialog";
 import { toast } from "@/hooks/use-toast";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getErrorMessage } from "@/lib/utils";
@@ -26,6 +28,10 @@ const Users = () => {
   const { state, deactivateUser, reactivateUser } = useAppContext();
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | undefined>();
+  const [profileUser, setProfileUser] = useState<User | null>(null);
+  const [permissionsUser, setPermissionsUser] = useState<User | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showPermissions, setShowPermissions] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -54,23 +60,6 @@ const Users = () => {
     user.lastLogin && new Date(user.lastLogin) >= sevenDaysAgo
   ).length;
 
-  const closeModal = () => {
-    const params = new URLSearchParams(location.search);
-    if (params.get('modal') === 'user') {
-      params.delete('modal');
-      navigate({ pathname: location.pathname, search: params.toString() ? `?${params.toString()}` : '' }, { replace: true });
-    }
-    setShowForm(false);
-    setEditingUser(undefined);
-  };
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (params.get('modal') === 'user') {
-      setShowForm(true);
-    }
-  }, [location.search]);
-
   const handleDeactivate = async (user: User) => {
     try {
       await deactivateUser(user.id);
@@ -92,7 +81,7 @@ const Users = () => {
       await reactivateUser(user.id);
       toast({
         title: "User reactivated",
-        description: `${user.name} has regained access to the system.`,
+        description: `${user.name} has been reactivated successfully.`,
       });
     } catch (error: unknown) {
       toast({
@@ -102,6 +91,41 @@ const Users = () => {
       });
     }
   };
+
+  const handleEditUser = (user: User) => {
+    setEditingUser(user);
+    setShowForm(true);
+    navigate({ pathname: location.pathname, search: "?modal=user" }, { replace: true });
+  };
+
+  const handleViewProfile = (user: User) => {
+    setProfileUser(user);
+    setShowProfile(true);
+  };
+
+  const handleManagePermissions = (user: User) => {
+    setPermissionsUser(user);
+    setShowPermissions(true);
+  };
+
+  const closeModal = () => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('modal') === 'user') {
+      params.delete('modal');
+      navigate({ pathname: location.pathname, search: params.toString() ? `?${params.toString()}` : '' }, { replace: true });
+    }
+    setShowForm(false);
+    setEditingUser(undefined);
+  };
+
+  // Handle URL parameters for modal state
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const modal = params.get('modal');
+    if (modal === 'user') {
+      setShowForm(true);
+    }
+  }, [location.search]);
 
   const columns: ColumnDef<User>[] = [
     {
@@ -203,15 +227,15 @@ const Users = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleViewProfile(user)}>
                 <Eye className="mr-2 h-4 w-4" />
                 View Profile
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleEditUser(user)}>
                 <Edit className="mr-2 h-4 w-4" />
                 Edit User
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleManagePermissions(user)}>
                 <Shield className="mr-2 h-4 w-4" />
                 Manage Permissions
               </DropdownMenuItem>
@@ -273,6 +297,12 @@ const Users = () => {
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-3xl">
+            <DialogTitle className="sr-only">
+              {editingUser ? 'Edit User' : 'Add New User'}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              {editingUser ? 'Update user information and settings' : 'Create a new user account'}
+            </DialogDescription>
             <UserForm
               user={editingUser}
               onSuccess={() => {
@@ -339,6 +369,20 @@ const Users = () => {
         data={state.users}
         searchKey="name"
         searchPlaceholder="Search users..."
+      />
+
+      {/* User Profile Dialog */}
+      <UserProfileDialog
+        user={profileUser}
+        open={showProfile}
+        onOpenChange={setShowProfile}
+      />
+
+      {/* Permissions Management Dialog */}
+      <PermissionsDialog
+        user={permissionsUser}
+        open={showPermissions}
+        onOpenChange={setShowPermissions}
       />
     </div>
   );

@@ -35,6 +35,8 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
   searchKey?: string;
   searchPlaceholder?: string;
+  getRowId?: (row: TData) => string;
+  getRowClassName?: (row: TData) => string;
 }
 
 export function DataTable<TData, TValue>({
@@ -42,6 +44,8 @@ export function DataTable<TData, TValue>({
   data,
   searchKey,
   searchPlaceholder = "Search...",
+  getRowId,
+  getRowClassName,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -134,11 +138,16 @@ export function DataTable<TData, TValue>({
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
+              table.getRowModel().rows.map((row) => {
+                const rowId = getRowId?.(row.original);
+                const rowClassName = getRowClassName?.(row.original);
+                return (
                 <TableRow
                   key={row.id}
+                  id={rowId}
+                  data-id={rowId}
                   data-state={row.getIsSelected() && "selected"}
-                  className="hover:bg-muted/50 transition-colors"
+                  className={`hover:bg-muted/50 transition-colors ${rowClassName || ''}`}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
@@ -149,7 +158,8 @@ export function DataTable<TData, TValue>({
                     </TableCell>
                   ))}
                 </TableRow>
-              ))
+                );
+              })
             ) : (
               <TableRow>
                 <TableCell
