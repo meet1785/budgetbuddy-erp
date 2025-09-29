@@ -62,24 +62,37 @@
 <summary>🖼️ <strong>Click to view application screenshots</strong></summary>
 
 ### 🏠 Dashboard Overview
-![Dashboard](https://via.placeholder.com/800x500/1f2937/ffffff?text=Dashboard+Screenshot+Coming+Soon)
-*Real-time analytics with Indian Rupee formatting and interactive charts*
 
-### 👥 User Management
-![User Management](https://via.placeholder.com/800x500/1f2937/ffffff?text=User+Management+Screenshot+Coming+Soon)
-*Comprehensive user management with role-based permissions*
+#### Light Theme
+![Dashboard Light](./screenshots/dashboard-overview.png)
+*Comprehensive dashboard with financial metrics, budget tracking, and user management*
 
-### 💰 Budget Management
-![Budget Management](https://via.placeholder.com/800x500/1f2937/ffffff?text=Budget+Management+Screenshot+Coming+Soon)
-*Dynamic budget tracking with expense linking*
+#### Dark Theme
+![Dashboard Dark](./screenshots/dashboard-overview-dark.png)
+*Beautiful dark mode interface with the same powerful features*
 
 ### 📊 Expense Tracking
-![Expense Tracking](https://via.placeholder.com/800x500/1f2937/ffffff?text=Expense+Tracking+Screenshot+Coming+Soon)
-*Advanced expense management with category filtering*
+![Expense Management](./screenshots/expense-tracking.png)
+*Advanced expense management with real-time form validation, category filtering, and approval workflow*
 
-### 🔍 Search & Filtering
-![Search Functionality](https://via.placeholder.com/800x500/1f2937/ffffff?text=Search+Functionality+Screenshot+Coming+Soon)
-*Real-time search across all data tables*
+### 👥 User Management
+![User Management](./screenshots/user-management.png)
+*Role-based user management with department assignments and permission controls*
+
+### 💰 Budget Management
+![Budget Management](./screenshots/budget-management.png)
+*Interactive budget tracking with progress bars and status indicators*
+
+### 📱 Mobile Responsive Design
+![Mobile Responsive](./screenshots/mobile-responsive.png)
+*Fully responsive design optimized for mobile and tablet devices*
+
+### 🔐 Authentication
+![Login Page](./screenshots/login-page.png)
+*Clean and secure authentication interface*
+
+![Register Page](./screenshots/register-page.png)
+*User-friendly registration with form validation*
 
 </details>
 
